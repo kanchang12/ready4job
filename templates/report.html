@@ -435,25 +435,88 @@
                     {% endif %}
                 </div>
                 
-                <!-- Action Plan -->
-                <div class="dashboard-card mt-4">
-                    <h5 class="mb-4">Action Plan</h5>
-                    
-                    <div class="action-item">
-                        <h6><i class="fas fa-check-circle text-success me-2"></i> Practice Questions</h6>
-                        <p>Continue practicing with 5 more interviews to improve your confidence and response quality.</p>
-                    </div>
-                    
-                    <div class="action-item">
-                        <h6><i class="fas fa-book text-primary me-2"></i> Resources</h6>
-                        <p>Review the common interview questions in our resource library and prepare your responses.</p>
-                    </div>
-                    
-                    <div class="action-item">
-                        <h6><i class="fas fa-calendar-alt text-info me-2"></i> Next Steps</h6>
-                        <p>Schedule your next practice interview focusing on the areas of improvement highlighted in this report.</p>
+                <!-- Audio Section -->
+<div class="dashboard-card mt-4">
+    <h5 class="mb-4"><i class="fas fa-headphones me-2"></i> Interview Audio Recordings</h5>
+    
+    {% if report.content.audio_files %}
+        <div class="row mb-3">
+            {% for audio_url in report.content.audio_files %}
+                <div class="col-md-6 mb-3">
+                    <div class="p-3 border rounded">
+                        <p class="mb-2"><strong>Recording {{ loop.index }}</strong></p>
+                        <audio controls class="w-100">
+                            <source src="{{ audio_url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
                     </div>
                 </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Audio recordings are not available for this report.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Voice Metrics Section -->
+{% if report.content.voice_metrics %}
+<div class="dashboard-card mt-4">
+    <h5 class="mb-4"><i class="fas fa-chart-bar me-2"></i> Voice Analysis</h5>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>Clarity</span>
+                    <span>{{ report.content.voice_metrics.clarity|default('75%') }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ report.content.voice_metrics.clarity|default('75%') }}" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>Pace</span>
+                    <span>{{ report.content.voice_metrics.pace|default('80%') }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ report.content.voice_metrics.pace|default('80%') }}" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>Confidence</span>
+                    <span>{{ report.content.voice_metrics.confidence|default('65%') }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ report.content.voice_metrics.confidence|default('65%') }}" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>Fluency</span>
+                    <span>{{ report.content.voice_metrics.fluency|default('70%') }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ report.content.voice_metrics.fluency|default('70%') }}" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4 p-3 bg-light rounded">
+        <h6 class="mb-3">Voice Feedback</h6>
+        <p>{{ report.content.voice_metrics.feedback|default('Your speech was generally clear and well-paced. Try to maintain consistent volume and reduce filler words to sound more confident.') }}</p>
+    </div>
+</div>
+{% endif %}
             </div>
         </div>
     </div>
