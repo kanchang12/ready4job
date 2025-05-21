@@ -289,6 +289,10 @@ def handle_user_message(data):
         emit('error', {'message': 'Authentication required'})
         return
     
+    # For a voice interview, this message would typically contain audio data
+    # or a reference to recorded audio. In this implementation, we're sending it
+    # as text to Eleven Labs for simplicity.
+    
     user_text = data.get('text', '')
     conversation_id = session.get('conversation_id')
     
@@ -303,11 +307,13 @@ def handle_user_message(data):
             'Content-Type': 'application/json'
         }
         
-        # Send user message to Eleven Labs
+        # Send user message to Eleven Labs - in a real voice implementation,
+        # this would either send the audio file or the transcript of the user's speech
         message_data = {
             'text': user_text,
             'conversation_id': conversation_id,
-            'user_id': str(current_user.id)
+            'user_id': str(current_user.id),
+            'is_voice': True,  # Indicate this is a voice conversation
         }
         
         # Make the request to Eleven Labs
@@ -320,13 +326,20 @@ def handle_user_message(data):
         if response.status_code == 200:
             message_response = response.json()
             ai_response = message_response.get('text', 'I did not understand that. Could you please rephrase?')
+            audio_url = message_response.get('audio_url')  # In a real implementation, Eleven Labs would return an audio URL
             
             # Check if interview is complete
             if message_response.get('metadata', {}).get('interview_complete', False):
-                emit('interviewer_message', {'text': ai_response})
+                emit('interviewer_message', {
+                    'text': ai_response,
+                    'audio_url': audio_url
+                })
                 emit('interview_completed', {'message': 'Interview completed'})
             else:
-                emit('interviewer_message', {'text': ai_response})
+                emit('interviewer_message', {
+                    'text': ai_response,
+                    'audio_url': audio_url
+                })
                 
         else:
             app.logger.error(f"Error sending message to Eleven Labs: {response.text}")
