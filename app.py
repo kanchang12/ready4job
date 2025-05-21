@@ -5,14 +5,8 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from datetime import datetime
 import os
 import json
-import threading
-import websockets
-import asyncio
-from flask_socketio import SocketIO, emit
 import secrets
-import ssl
-import certifi
-import requests
+from flask_socketio import SocketIO, emit
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -31,11 +25,6 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-
-# Configure Eleven Labs API keys
-ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY', '')
-ELEVENLABS_AGENT_ID = os.environ.get('ELEVENLABS_AGENT_ID', '')
-ELEVENLABS_BASE_URL = os.environ.get('ELEVENLABS_BASE_URL', 'https://api.elevenlabs.io')
 
 # Define database models
 class User(UserMixin, db.Model):
@@ -222,156 +211,96 @@ def purchase():
     
     return render_template('purchase.html')
 
+# Socket.IO event handlers
 @socketio.on('start_interview')
 def handle_start_interview():
-    global elevenlabs_ws, elevenlabs_ws_loop
-
     if current_user.credits <= 0:
         emit('error', {'message': 'Not enough credits'})
         return
 
+    # Setup interview session
+    session['interview_id'] = f"interview_{secrets.token_hex(8)}"
+    
+    # Send initial message
     emit('interview_started', {'message': 'Interview started'})
-
-    try:
-        uri = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=agent_01jvjmatfbegaa4f88zkwdyd72"
-
-        def run_loop():
-            asyncio.set_event_loop(asyncio.new_event_loop())
-            loop = asyncio.get_event_loop()
-            global elevenlabs_ws_loop
-            elevenlabs_ws_loop = loop
-            loop.run_until_complete(start_ws(uri))
-
-        threading.Thread(target=run_loop, daemon=True).start()
-
-        emit('interviewer_message', {
-            'text': "Hello! I'm your AI interviewer. Let's start with you telling me a bit about yourself and your background."
-        })
-
-    except Exception as e:
-        app.logger.error(f"Error starting interview: {str(e)}")
-        emit('interviewer_message', {
-            'text': 'We encountered a problem connecting to the AI. Please try again shortly.'
-        })
-
-
-async def start_ws(uri):
-    global elevenlabs_ws
-
-    try:
-        async with websockets.connect(uri) as ws:
-            elevenlabs_ws = ws
-            # No headers, no init_data sent, just connect and do nothing or just stay connected
-            print("Connected to ElevenLabs websocket with no data sent")
-
-            async for message in ws:
-                # If any message received, you can log or emit it
-                print(f"Received message: {message}")
-
-    except Exception as e:
-        app.logger.error(f"WebSocket connection error: {str(e)}")
-
+    
+    # Send first question (the real interview is handled by ElevenLabs widget)
+    emit('interviewer_message', {
+        'text': "Hello! I'm your AI interviewer. Let's start with you telling me a bit about yourself and your background."
+    })
 
 @socketio.on('user_message')
 def handle_user_message(data):
-    global elevenlabs_ws, elevenlabs_ws_loop
-
     if not current_user.is_authenticated:
         emit('error', {'message': 'Authentication required'})
         return
 
+    # Get the message text
     user_text = data.get('text', '')
-    conversation_id = session.get('conversation_id')
+    
+    # Log the message
+    app.logger.info(f"User message: {user_text}")
+    
+    # In this implementation, we don't need to do anything with the message
+    # since the real conversation is handled by the hidden ElevenLabs widget
+    # But we acknowledge receipt and keep the UI flow going
+    
+    # Simulate processing time
+    socketio.sleep(1)
+    
+    # End the interview after some time (for demo purposes)
+    # In a real implementation, this would be triggered by the ElevenLabs widget
+    # when the interview is complete
+    if "end interview" in user_text.lower():
+        # End the interview
+        complete_interview()
+    else:
+        # Otherwise, just send a generic follow-up question
+        emit('interviewer_message', {
+            'text': "Thank you for sharing that. Could you tell me about a challenging situation you faced at work and how you handled it?"
+        })
 
-    if not conversation_id or not elevenlabs_ws:
-        emit('error', {'message': 'Conversation not initialized. Please restart the interview.'})
-        return
+@socketio.on('user_speaking')
+def handle_user_speaking(data):
+    # This handler just acknowledges when the user is speaking
+    # It's used to coordinate the UI state with the hidden ElevenLabs widget
+    is_active = data.get('active', False)
+    app.logger.info(f"User speaking: {is_active}")
 
-    try:
-        message_data = {
-            "type": "user_utterance",
-            "text": user_text,
-            "user_id": str(current_user.id),
-            "conversation_id": conversation_id
-        }
-
-        def send_ws_message():
-            asyncio.run_coroutine_threadsafe(
-                elevenlabs_ws.send(json.dumps(message_data)),
-                elevenlabs_ws_loop
-            )
-
-        send_ws_message()
-
-    except Exception as e:
-        app.logger.error(f"Error sending user message: {str(e)}")
-        emit('error', {'message': 'Failed to send message to AI interviewer.'})
-
-# Endpoint to receive transcript and summary from Eleven Labs
-@app.route('/api/interview/callback', methods=['POST'])
-def interview_callback():
+def complete_interview():
     """
-    Receive callback from Eleven Labs with transcript, audio data and summary
-    This endpoint should be configured in Eleven Labs as the callback URL
+    Function to end the interview and generate a report
     """
-    # In production, implement signature verification to ensure request is from Eleven Labs
-    app.logger.info("Received callback from Eleven Labs")
-    
-    if not request.is_json:
-        app.logger.error("Callback request is not JSON")
-        return jsonify({'error': 'Request must be JSON'}), 400
-    
-    data = request.get_json()
-    app.logger.info(f"Callback data received: {data}")
-    
-    # Extract data from callback
-    user_id = data.get('user_id')
-    conversation_id = data.get('conversation_id')
-    transcript = data.get('transcript', {})
-    summary = data.get('summary', {})
-    audio_files = data.get('audio_files', [])  # URLs to audio recordings, if provided
-    
-    app.logger.info(f"Processing callback for user_id: {user_id}, conversation_id: {conversation_id}")
-    
-    # Find the user
-    user = User.query.filter_by(id=user_id).first()
-    if not user:
-        app.logger.error(f"User not found for id: {user_id}")
-        return jsonify({'error': 'User not found'}), 404
-    
-    # Create report from transcript and summary
+    # Create a simple report (in a real implementation, this would use data from ElevenLabs)
     content = {
-        'conversation_id': conversation_id,
-        'transcript': transcript,
-        'overall': summary.get('overall_assessment', 'Good'),
-        'strengths': summary.get('strengths', 'Clear communication'),
-        'improvement': summary.get('areas_for_improvement', 'Be more concise with answers'),
-        'detailed_feedback': summary.get('detailed_feedback', {}),
-        'audio_files': audio_files,  # Store audio URLs if provided
-        'voice_metrics': summary.get('voice_metrics', {})  # Voice-specific metrics
+        'conversation_id': session.get('interview_id', 'unknown'),
+        'overall': 'Good',
+        'strengths': 'Clear communication, provided relevant examples',
+        'improvement': 'Be more concise with answers, focus more on specific achievements',
+        'detailed_feedback': {
+            'communication': 'Effective communication skills demonstrated',
+            'content': 'Answers were relevant and informative',
+            'delivery': 'Good pace and articulation'
+        }
     }
     
     # Create a new report
     try:
-        report = Report(user_id=user.id, content=content)
+        report = Report(user_id=current_user.id, content=content)
         
         # Deduct credit
-        if not user.deduct_credit():
-            app.logger.warning(f"User {user_id} has no credits to deduct")
+        current_user.deduct_credit()
         
         # Save to database
         db.session.add(report)
         db.session.commit()
         
-        app.logger.info(f"Successfully created report {report.id} for user {user_id}")
+        # Notify client that interview is complete
+        socketio.emit('interview_completed', {'success': True, 'report_id': report.id}, room=request.sid)
         
-        return jsonify({
-            'success': True,
-            'report_id': report.id
-        }), 201
     except Exception as e:
         app.logger.error(f"Error creating report: {str(e)}")
-        return jsonify({'error': f'Error creating report: {str(e)}'}), 500
+        socketio.emit('error', {'message': 'Error creating report'}, room=request.sid)
 
 # Create database tables
 with app.app_context():
