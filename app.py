@@ -353,50 +353,67 @@ def handle_user_message(data):
 @app.route('/api/interview/callback', methods=['POST'])
 def interview_callback():
     """
-    Receive callback from Eleven Labs with transcript and summary
+    Receive callback from Eleven Labs with transcript, audio data and summary
     This endpoint should be configured in Eleven Labs as the callback URL
     """
-    # Verify request is from Eleven Labs (you might implement signature verification)
-    # In production, implement proper validation
+    # In production, implement signature verification to ensure request is from Eleven Labs
+    app.logger.info("Received callback from Eleven Labs")
     
     if not request.is_json:
+        app.logger.error("Callback request is not JSON")
         return jsonify({'error': 'Request must be JSON'}), 400
     
     data = request.get_json()
+    app.logger.info(f"Callback data received: {data}")
     
     # Extract data from callback
     user_id = data.get('user_id')
+    conversation_id = data.get('conversation_id')
     transcript = data.get('transcript', {})
     summary = data.get('summary', {})
+    audio_files = data.get('audio_files', [])  # URLs to audio recordings, if provided
+    
+    app.logger.info(f"Processing callback for user_id: {user_id}, conversation_id: {conversation_id}")
     
     # Find the user
     user = User.query.filter_by(id=user_id).first()
     if not user:
+        app.logger.error(f"User not found for id: {user_id}")
         return jsonify({'error': 'User not found'}), 404
     
     # Create report from transcript and summary
     content = {
+        'conversation_id': conversation_id,
         'transcript': transcript,
         'overall': summary.get('overall_assessment', 'Good'),
         'strengths': summary.get('strengths', 'Clear communication'),
         'improvement': summary.get('areas_for_improvement', 'Be more concise with answers'),
-        'detailed_feedback': summary.get('detailed_feedback', {})
+        'detailed_feedback': summary.get('detailed_feedback', {}),
+        'audio_files': audio_files,  # Store audio URLs if provided
+        'voice_metrics': summary.get('voice_metrics', {})  # Voice-specific metrics
     }
     
     # Create a new report
-    report = Report(user_id=user.id, content=content)
-    
-    # Deduct credit
-    user.deduct_credit()
-    
-    # Save to database
-    db.session.add(report)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'report_id': report.id
-    }), 201
+    try:
+        report = Report(user_id=user.id, content=content)
+        
+        # Deduct credit
+        if not user.deduct_credit():
+            app.logger.warning(f"User {user_id} has no credits to deduct")
+        
+        # Save to database
+        db.session.add(report)
+        db.session.commit()
+        
+        app.logger.info(f"Successfully created report {report.id} for user {user_id}")
+        
+        return jsonify({
+            'success': True,
+            'report_id': report.id
+        }), 201
+    except Exception as e:
+        app.logger.error(f"Error creating report: {str(e)}")
+        return jsonify({'error': f'Error creating report: {str(e)}'}), 500
 
 # Create database tables
 with app.app_context():
