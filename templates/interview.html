@@ -71,16 +71,8 @@
             margin-right: 5px;
         }
         
-        .status-connecting {
-            background-color: var(--warning-color);
-        }
-        
         .status-connected {
             background-color: var(--success-color);
-        }
-        
-        .status-disconnected {
-            background-color: var(--danger-color);
         }
         
         .interview-card {
@@ -361,16 +353,45 @@
         
         /* Hide ElevenLabs Widget completely */
         #elevenlabs-widget-container {
-            position: absolute !important;
+            position: fixed !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            height: 1px !important;
+            width: 1px !important;
             opacity: 0 !important;
             visibility: hidden !important;
             pointer-events: none !important;
-            height: 0 !important;
-            width: 0 !important;
+            display: block !important;
             overflow: hidden !important;
+            clip: rect(0 0 0 0) !important;
+            -webkit-transform: scale(0) !important;
+            transform: scale(0) !important;
             z-index: -9999 !important;
+        }
+        
+        /* Hide all elements inside the elevenlabs container */
+        #elevenlabs-widget-container * {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        
+        /* Also hide the elevenlabs-convai custom element directly */
+        elevenlabs-convai {
+            position: fixed !important;
             top: -9999px !important;
             left: -9999px !important;
+            height: 1px !important;
+            width: 1px !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            display: block !important;
+            overflow: hidden !important;
+            clip: rect(0 0 0 0) !important;
+            -webkit-transform: scale(0) !important;
+            transform: scale(0) !important;
+            z-index: -9999 !important;
         }
         
         @media (max-width: 768px) {
@@ -425,8 +446,8 @@
         <div class="interview-header">
             <h2>AI Voice Interview</h2>
             <div class="connection-status">
-                <div id="status-indicator" class="status-indicator status-connecting"></div>
-                <span id="connection-status-text">Connecting...</span>
+                <div id="status-indicator" class="status-indicator status-connected"></div>
+                <span id="connection-status-text">Ready</span>
             </div>
         </div>
         
@@ -434,10 +455,10 @@
             <!-- Loader Overlay - shown during initial connection -->
             <div id="loader-overlay" class="loader-overlay">
                 <div class="loading-spinner"></div>
-                <p class="loader-message">Connecting to AI interviewer...</p>
+                <p class="loader-message">Preparing AI interviewer...</p>
             </div>
             
-            <h3 id="interview-title" class="interview-title">Interview Starting</h3>
+            <h3 id="interview-title" class="interview-title">Interview Ready</h3>
             <p id="interview-subtitle" class="interview-subtitle">The AI interviewer will ask you questions shortly.</p>
             
             <div class="voice-visualization" id="voice-visualization">
@@ -470,17 +491,21 @@
                     <i class="fas fa-comment-alt"></i> Current Question:
                 </div>
                 <div id="question-text" class="question-text">
-                    Waiting for the interview to begin...
+                    Press "Start Interview" to begin...
                 </div>
             </div>
             
-            <p id="instruction-text" class="instruction-text">Press the microphone button when you're ready to speak</p>
+            <p id="instruction-text" class="instruction-text">Click the Start Interview button when you're ready</p>
             
             <div id="mic-button" class="mic-button">
                 <i class="fas fa-microphone"></i>
             </div>
             
-            <button id="end-button" class="end-button">
+            <button id="start-button" class="btn btn-primary mb-4">
+                <i class="fas fa-play-circle me-2"></i> Start Interview
+            </button>
+            
+            <button id="end-button" class="end-button" style="display: none;">
                 <i class="fas fa-stop-circle me-2"></i> End Interview
             </button>
         </div>
@@ -516,10 +541,12 @@
         </div>
     </div>
 
-    <!-- Hidden ElevenLabs Widget -->
+    <!-- Hidden ElevenLabs Widget (completely hidden with CSS) -->
     <div id="elevenlabs-widget-container">
         <elevenlabs-convai agent-id="agent_01jvjmatfbegaa4f88zkwdyd72"></elevenlabs-convai>
     </div>
+    
+    <!-- ElevenLabs Script -->
     <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
 
     <!-- JavaScript -->
@@ -534,324 +561,149 @@
             const questionText = document.getElementById('question-text');
             const instructionText = document.getElementById('instruction-text');
             const micButton = document.getElementById('mic-button');
-            const waveform = document.getElementById('waveform');
+            const startButton = document.getElementById('start-button');
             const endButton = document.getElementById('end-button');
             const reportModal = document.getElementById('report-modal');
             const modalClose = document.getElementById('modal-close');
             const modalLoading = document.getElementById('modal-loading');
             const modalContent = document.getElementById('modal-content');
-            const performanceRating = document.getElementById('performance-rating');
-            const strengthsText = document.getElementById('strengths-text');
-            const improvementText = document.getElementById('improvement-text');
-            const viewReportButton = document.getElementById('view-report-button');
-            
-            // ElevenLabs Widget Integration
-            let elevenLabsWidget = null;
-            let elevenLabsInitialized = false;
-            let widgetLoaded = false;
-            let currentQuestion = "";
-            let userResponses = [];
-            
-            // Function to find the ElevenLabs widget when it loads
-            function checkForElevenLabsWidget() {
-                const widget = document.querySelector('elevenlabs-convai');
-                if (widget && !elevenLabsWidget) {
-                    elevenLabsWidget = widget;
-                    console.log('ElevenLabs widget found');
-                    widgetLoaded = true;
-                    
-                    // Setup message listeners for the widget if possible
-                    setupWidgetListeners();
-                }
-                
-                if (!widgetLoaded) {
-                    setTimeout(checkForElevenLabsWidget, 1000);
-                }
-            }
-            
-            // Start checking for the widget
-            checkForElevenLabsWidget();
-            
-            // Setup listeners for the widget to capture messages
-            function setupWidgetListeners() {
-                if (!elevenLabsWidget) return;
-                
-                // Try to access shadow DOM if possible
-                const shadowRoot = elevenLabsWidget.shadowRoot;
-                
-                // Listen for custom events from the widget
-                window.addEventListener('message', function(event) {
-                    // Try to capture messages from the widget
-                    if (event.data && typeof event.data === 'object') {
-                        if (event.data.type === 'agent_message' || event.data.source === 'elevenlabs') {
-                            // Agent is speaking, update UI
-                            if (event.data.text) {
-                                currentQuestion = event.data.text;
-                                updateQuestionText(currentQuestion);
-                            }
-                        }
-                    }
-                });
-                
-                // Add a mutation observer if possible to detect widget changes
-                try {
-                    const observer = new MutationObserver((mutations) => {
-                        mutations.forEach((mutation) => {
-                            // Look for added nodes that might contain messages
-                            mutation.addedNodes.forEach((node) => {
-                                if (node.textContent && node.textContent.length > 10) {
-                                    // This could be a message from the agent
-                                    const possibleQuestion = node.textContent.trim();
-                                    if (possibleQuestion !== currentQuestion && possibleQuestion.length > 20) {
-                                        currentQuestion = possibleQuestion;
-                                        updateQuestionText(currentQuestion);
-                                    }
-                                }
-                            });
-                        });
-                    });
-                    
-                    // Observe either the shadow DOM or the widget itself
-                    const targetNode = shadowRoot || elevenLabsWidget;
-                    observer.observe(targetNode, { childList: true, subtree: true });
-                } catch (error) {
-                    console.error('Error setting up mutation observer:', error);
-                }
-            }
-            
-            // Function to update the question text
-            function updateQuestionText(text) {
-                if (text && text.length > 10) {
-                    questionText.textContent = text;
-                    
-                    // Update UI state
-                    interviewTitle.textContent = 'AI Interviewer Question';
-                    interviewSubtitle.textContent = "Listen to the question, then respond.";
-                    instructionText.textContent = "Press the microphone button when you're ready to speak";
-                    
-                    // Simulate voice visualization effect
-                    simulateVoicePlayback();
-                }
-            }
-            
-            // Function to activate the widget and start the interview
-            function activateElevenLabsWidget() {
-                if (!widgetLoaded) {
-                    console.log('Widget not yet loaded, will retry');
-                    setTimeout(activateElevenLabsWidget, 1000);
-                    return;
-                }
-                
-                if (!elevenLabsInitialized) {
-                    try {
-                        console.log('Attempting to activate ElevenLabs widget');
-                        
-                        // Find all buttons in the widget and try to click the start button
-                        let startButtonFound = false;
-                        
-                        // Function to find and click elements recursively
-                        function findAndClickStartButton(element) {
-                            if (!element) return false;
-                            
-                            // Check if this element is a button
-                            if (element.tagName === 'BUTTON') {
-                                // Click any button that might start the conversation
-                                element.click();
-                                console.log('Clicked a button in the widget');
-                                startButtonFound = true;
-                                return true;
-                            }
-                            
-                            // Check shadow DOM if available
-                            if (element.shadowRoot) {
-                                const buttons = element.shadowRoot.querySelectorAll('button');
-                                for (const btn of buttons) {
-                                    btn.click();
-                                    console.log('Clicked button in shadow DOM');
-                                    startButtonFound = true;
-                                    return true;
-                                }
-                            }
-                            
-                            // Try to get all child elements and check them
-                            const children = element.children || [];
-                            for (let i = 0; i < children.length; i++) {
-                                if (findAndClickStartButton(children[i])) {
-                                    return true;
-                                }
-                            }
-                            
-                            return false;
-                        }
-                        
-                        // Try to find and click the start button
-                        findAndClickStartButton(elevenLabsWidget);
-                        
-                        // If no start button found, dispatch a custom event
-                        if (!startButtonFound) {
-                            // Try to dispatch a custom event to start the conversation
-                            elevenLabsWidget.dispatchEvent(new CustomEvent('start-conversation', {
-                                bubbles: true,
-                                composed: true
-                            }));
-                            
-                            console.log('Dispatched start-conversation event');
-                        }
-                        
-                        elevenLabsInitialized = true;
-                    } catch (error) {
-                        console.error('Error activating ElevenLabs widget:', error);
-                    }
-                }
-            }
+            const waveform = document.getElementById('waveform');
             
             // State variables
             let interviewStarted = false;
             let interviewEnded = false;
             let micActive = false;
-            let connectionSuccess = false;
-            let reconnectAttempts = 0;
-            const MAX_RECONNECT_ATTEMPTS = 3;
             
-            // Create Socket.IO connection with options for better reliability
-            const socket = io({
-                reconnection: true,
-                reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                timeout: 20000
-            });
+            // Hide the mic button initially, show after interview starts
+            micButton.style.display = 'none';
             
-            // Socket connection events
-            socket.on('connect', function() {
-                console.log('Socket connected');
-                connectionSuccess = true;
-                statusIndicator.className = 'status-indicator status-connected';
-                connectionStatusText.textContent = 'Connected';
-                
-                // Hide loader after brief delay
+            // Hide loader after a brief delay
+            setTimeout(function() {
+                loaderOverlay.style.opacity = '0';
                 setTimeout(function() {
-                    loaderOverlay.style.opacity = '0';
-                    setTimeout(function() {
-                        loaderOverlay.style.display = 'none';
-                    }, 300);
-                    
-                    // Start the interview after connection
-                    socket.emit('start_interview');
-                    
-                    // Activate the ElevenLabs widget
-                    activateElevenLabsWidget();
-                }, 1500);
-            });
+                    loaderOverlay.style.display = 'none';
+                }, 300);
+            }, 1500);
             
-            socket.on('connect_error', function(error) {
-                console.error('Connection error:', error);
-                statusIndicator.className = 'status-indicator status-disconnected';
-                connectionStatusText.textContent = 'Connection Error';
-                
-                // Handle reconnection limit
-                reconnectAttempts++;
-                if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-                    interviewTitle.textContent = 'Connection Issues';
-                    interviewSubtitle.textContent = 'Unable to connect to the interview server. Please try again later.';
-                    questionText.textContent = 'There was a problem connecting to the interview service. This might be due to network issues or high server load.';
-                    micButton.style.display = 'none';
+            // ElevenLabs Widget Integration
+            let elevenLabsWidget = null;
+            let elevenLabsStarted = false;
+            
+            // Function to find the ElevenLabs widget when it loads
+            function findElevenLabsWidget() {
+                const widget = document.querySelector('elevenlabs-convai');
+                if (widget) {
+                    elevenLabsWidget = widget;
+                    console.log('ElevenLabs widget found');
+                    return true;
                 }
-            });
+                return false;
+            }
             
-            socket.on('disconnect', function() {
-                console.log('Socket disconnected');
-                statusIndicator.className = 'status-indicator status-disconnected';
-                connectionStatusText.textContent = 'Disconnected';
-                
-                if (!interviewEnded && connectionSuccess) {
-                    interviewTitle.textContent = 'Connection Lost';
-                    interviewSubtitle.textContent = 'Lost connection to the interview server.';
-                    questionText.textContent = 'The connection to the interviewer was lost. If this persists, please refresh the page.';
+            // Function to start the ElevenLabs interview
+            function startElevenLabsInterview() {
+                if (!findElevenLabsWidget()) {
+                    console.log('Widget not found, retrying...');
+                    setTimeout(startElevenLabsInterview, 1000);
+                    return;
                 }
-            });
-            
-            // Interview events
-            socket.on('status', function(data) {
-                console.log('Status message:', data.message);
-            });
-            
-            socket.on('error', function(data) {
-                console.error('Interview error:', data.message);
-                interviewTitle.textContent = 'Error';
-                interviewSubtitle.textContent = 'There was an error during the interview.';
-                questionText.textContent = data.message || 'An unknown error occurred.';
-            });
-            
-            socket.on('interview_started', function(data) {
-                console.log('Interview started');
-                interviewStarted = true;
-                interviewTitle.textContent = 'Interview Started';
-                interviewSubtitle.textContent = 'The interviewer will ask you questions.';
-                questionText.textContent = data.message || 'The interview has started. You will hear questions shortly.';
                 
-                // Activate ElevenLabs widget if not already done
-                activateElevenLabsWidget();
-            });
-            
-            socket.on('interviewer_message', function(data) {
-                console.log('Received interviewer message:', data.text);
+                if (elevenLabsStarted) return;
                 
-                // Update display
-                interviewTitle.textContent = 'AI Interviewer Question';
-                interviewSubtitle.textContent = "Listen to the question, then respond.";
-                questionText.textContent = data.text;
-                instructionText.textContent = "Press the microphone button when you're ready to speak";
-                
-                // Reset mic button state
-                micActive = false;
-                micButton.classList.remove('active');
-                
-                // Simulate voice playback
-                simulateVoicePlayback();
-                
-                // Store the current question
-                currentQuestion = data.text;
-            });
-            
-            socket.on('interview_completed', function(data) {
-                console.log('Interview completed');
-                interviewEnded = true;
-                interviewTitle.textContent = 'Interview Completed';
-                interviewSubtitle.textContent = 'Your interview has finished.';
-                showReportModal();
-                
-                // Get the report
-                setTimeout(function() {
-                    fetchLatestReport();
-                }, 2000);
-                
-                // End the ElevenLabs session if possible
                 try {
-                    // Find and click any end button in the widget
-                    if (elevenLabsWidget) {
-                        const endButtons = elevenLabsWidget.querySelectorAll('button');
-                        endButtons.forEach(button => {
-                            if (button.innerText.toLowerCase().includes('end') || 
-                                button.innerText.toLowerCase().includes('stop') ||
-                                button.getAttribute('aria-label')?.toLowerCase().includes('end')) {
-                                button.click();
+                    // Use different approaches to try to activate the widget
+                    
+                    // 1. Try to find a button in the widget to click
+                    const findAndClickButton = (element) => {
+                        if (!element) return false;
+                        
+                        if (element.tagName === 'BUTTON') {
+                            element.click();
+                            console.log('Clicked button in widget');
+                            return true;
+                        }
+                        
+                        // Check shadow DOM
+                        if (element.shadowRoot) {
+                            const buttons = element.shadowRoot.querySelectorAll('button');
+                            if (buttons.length > 0) {
+                                buttons[0].click();
+                                console.log('Clicked button in shadow DOM');
+                                return true;
                             }
-                        });
+                        }
+                        
+                        // Check children
+                        const children = element.children || [];
+                        for (let i = 0; i < children.length; i++) {
+                            if (findAndClickButton(children[i])) {
+                                return true;
+                            }
+                        }
+                        
+                        return false;
+                    };
+                    
+                    // Try to click a button
+                    const buttonClicked = findAndClickButton(elevenLabsWidget);
+                    
+                    // 2. If no button found, try dispatching events
+                    if (!buttonClicked) {
+                        // Try various event approaches
+                        elevenLabsWidget.dispatchEvent(new CustomEvent('start', { bubbles: true }));
+                        elevenLabsWidget.dispatchEvent(new CustomEvent('start-conversation', { bubbles: true }));
+                        
+                        console.log('Dispatched start events to widget');
                     }
+                    
+                    // 3. Also try direct method calls if available
+                    if (typeof elevenLabsWidget.startInterview === 'function') {
+                        elevenLabsWidget.startInterview();
+                        console.log('Called startInterview method');
+                    }
+                    
+                    elevenLabsStarted = true;
+                    
+                    // Update UI
+                    startButton.style.display = 'none';
+                    micButton.style.display = 'flex';
+                    endButton.style.display = 'block';
+                    
+                    interviewTitle.textContent = 'Interview Started';
+                    interviewSubtitle.textContent = 'The interviewer will ask you questions.';
+                    questionText.textContent = "Hello! I'm your AI interviewer. Let's start with you telling me a bit about yourself and your background.";
+                    instructionText.textContent = "Press the microphone button when you're ready to speak";
+                    
+                    // Simulate voice playback animation for initial question
+                    simulateVoicePlayback();
+                    
+                    interviewStarted = true;
+                    
                 } catch (error) {
-                    console.error('Error ending ElevenLabs session:', error);
+                    console.error('Error starting ElevenLabs interview:', error);
                 }
+            }
+            
+            // Start interview when button is clicked
+            startButton.addEventListener('click', function() {
+                if (interviewStarted) return;
+                
+                // Set loading state
+                startButton.disabled = true;
+                startButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+                
+                // Start the ElevenLabs interview
+                startElevenLabsInterview();
             });
             
-            // UI Event handlers
+            // Handle mic button clicks
             micButton.addEventListener('click', function() {
                 if (!interviewStarted || interviewEnded) return;
                 
                 micActive = !micActive;
                 
                 if (micActive) {
-                    // Start recording - activate the ElevenLabs mic
+                    // Start recording - try to activate widget mic
                     console.log('Mic activated');
                     micButton.classList.add('active');
                     interviewTitle.textContent = 'You are Speaking';
@@ -863,128 +715,33 @@
                         bar.style.backgroundColor = 'var(--success-color)';
                     });
                     
-                    // Activate the mic in the ElevenLabs widget
+                    // Try to activate the widget microphone
                     if (elevenLabsWidget) {
-                        // Try to find the mic button in the widget structure
                         try {
-                            // Function to find and click mic button recursively
-                            function findAndClickMicButton(element) {
+                            // Try to find and click a mic button
+                            const findAndClickMicButton = (element) => {
                                 if (!element) return false;
                                 
-                                // Check if this might be a mic button
                                 if (element.tagName === 'BUTTON') {
-                                    // Look for a mic icon or label
-                                    const hasIcon = element.innerHTML.includes('mic') || 
-                                                   element.innerHTML.includes('microphone');
-                                    const hasLabel = element.getAttribute('aria-label')?.toLowerCase().includes('mic') ||
-                                                     element.getAttribute('title')?.toLowerCase().includes('mic');
+                                    // Check if it looks like a mic button
+                                    const html = element.innerHTML || '';
+                                    const ariaLabel = element.getAttribute('aria-label') || '';
                                     
-                                    if (hasIcon || hasLabel) {
+                                    if (html.includes('mic') || ariaLabel.includes('mic')) {
                                         element.click();
-                                        console.log('Clicked mic button in widget');
+                                        console.log('Clicked mic button');
                                         return true;
                                     }
                                 }
                                 
-                                // Check shadow DOM if available
+                                // Check shadow DOM
                                 if (element.shadowRoot) {
                                     const buttons = element.shadowRoot.querySelectorAll('button');
                                     for (const btn of buttons) {
-                                        // Look for mic buttons in shadow DOM
-                                        const innerHTML = btn.innerHTML || '';
+                                        const html = btn.innerHTML || '';
                                         const ariaLabel = btn.getAttribute('aria-label') || '';
-                                        const title = btn.getAttribute('title') || '';
                                         
-                                        if (innerHTML.includes('mic') || 
-                                            ariaLabel.toLowerCase().includes('mic') ||
-                                            title.toLowerCase().includes('mic')) {
-                                            btn.click();
-                                            console.log('Clicked mic button in shadow DOM');
-                                            return true;
-                                        }
-                                    }
-                                }
-                                
-                                // Try to get all child elements and check them
-                                const children = element.children || [];
-                                for (let i = 0; i < children.length; i++) {
-                                    if (findAndClickMicButton(children[i])) {
-                                        return true;
-                                    }
-                                }
-                                
-                                return false;
-                            }
-                            
-                            // Try to find and click the mic button
-                            const micActivated = findAndClickMicButton(elevenLabsWidget);
-                            
-                            // If no mic button found, dispatch a custom event
-                            if (!micActivated) {
-                                // Try to dispatch a custom event to start recording
-                                elevenLabsWidget.dispatchEvent(new CustomEvent('start-recording', {
-                                    bubbles: true,
-                                    composed: true
-                                }));
-                                
-                                console.log('Dispatched start-recording event');
-                            }
-                        } catch (error) {
-                            console.error('Error activating ElevenLabs mic:', error);
-                        }
-                    }
-                    
-                    // Also send a message through our own socket as fallback
-                    socket.emit('user_speaking', { active: true });
-                    
-                } else {
-                    // End recording
-                    console.log('Mic deactivated');
-                    micButton.classList.remove('active');
-                    interviewTitle.textContent = 'Processing Response';
-                    interviewSubtitle.textContent = 'Sending your response...';
-                    instructionText.textContent = 'Please wait...';
-                    
-                    // Reset waveform color
-                    document.querySelectorAll('.wave-bar').forEach(bar => {
-                        bar.style.backgroundColor = '';
-                    });
-                    
-                    // Stop recording in the ElevenLabs widget
-                    if (elevenLabsWidget) {
-                        // Try to find the stop button in the widget structure
-                        try {
-                            // Function to find and click stop button recursively
-                            function findAndClickStopButton(element) {
-                                if (!element) return false;
-                                
-                                // Check if this might be a stop button
-                                if (element.tagName === 'BUTTON') {
-                                    // Look for a stop icon or label
-                                    const hasIcon = element.innerHTML.includes('stop') || 
-                                                   element.innerHTML.includes('pause');
-                                    const hasLabel = element.getAttribute('aria-label')?.toLowerCase().includes('stop') ||
-                                                     element.getAttribute('title')?.toLowerCase().includes('stop');
-                                    
-                                    if (hasIcon || hasLabel) {
-                                        element.click();
-                                        console.log('Clicked stop button in widget');
-                                        return true;
-                                    }
-                                }
-                                
-                                // Check shadow DOM if available
-                                if (element.shadowRoot) {
-                                    const buttons = element.shadowRoot.querySelectorAll('button');
-                                    for (const btn of buttons) {
-                                        // Look for stop buttons in shadow DOM
-                                        const innerHTML = btn.innerHTML || '';
-                                        const ariaLabel = btn.getAttribute('aria-label') || '';
-                                        const title = btn.getAttribute('title') || '';
-                                        
-                                        if (innerHTML.includes('stop') || innerHTML.includes('pause') || 
-                                            ariaLabel.toLowerCase().includes('stop') ||
-                                            title.toLowerCase().includes('stop')) {
+                                        if (html.includes('stop') || ariaLabel.includes('stop')) {
                                             btn.click();
                                             console.log('Clicked stop button in shadow DOM');
                                             return true;
@@ -992,7 +749,7 @@
                                     }
                                 }
                                 
-                                // Try to get all child elements and check them
+                                // Check children
                                 const children = element.children || [];
                                 for (let i = 0; i < children.length; i++) {
                                     if (findAndClickStopButton(children[i])) {
@@ -1001,91 +758,112 @@
                                 }
                                 
                                 return false;
+                            };
+                            
+                            // Try to find and click a stop button
+                            const stopClicked = findAndClickStopButton(elevenLabsWidget);
+                            
+                            // If no button found, try dispatching events
+                            if (!stopClicked) {
+                                elevenLabsWidget.dispatchEvent(new CustomEvent('mic-off', { bubbles: true }));
+                                elevenLabsWidget.dispatchEvent(new CustomEvent('stop-recording', { bubbles: true }));
+                                console.log('Dispatched stop events');
                             }
                             
-                            // Try to find and click the stop button
-                            const stopActivated = findAndClickStopButton(elevenLabsWidget);
-                            
-                            // If no stop button found, dispatch a custom event
-                            if (!stopActivated) {
-                                // Try to dispatch a custom event to stop recording
-                                elevenLabsWidget.dispatchEvent(new CustomEvent('stop-recording', {
-                                    bubbles: true,
-                                    composed: true
-                                }));
-                                
-                                console.log('Dispatched stop-recording event');
-                            }
                         } catch (error) {
-                            console.error('Error stopping ElevenLabs recording:', error);
+                            console.error('Error stopping recording:', error);
                         }
                     }
                     
-                    // Also send a message through our own socket as fallback
-                    socket.emit('user_message', {
-                        text: 'Voice response from user (processed through ElevenLabs)'
-                    });
-                    
-                    socket.emit('user_speaking', { active: false });
-                }
-            });
-            
-            endButton.addEventListener('click', function() {
-                if (!interviewStarted || interviewEnded) return;
-                
-                if (confirm('Are you sure you want to end the interview?')) {
-                    console.log('Ending interview early');
-                    interviewEnded = true;
-                    interviewTitle.textContent = 'Interview Ended';
-                    interviewSubtitle.textContent = 'You ended the interview early.';
-                    
-                    // End the ElevenLabs session if possible
-                    try {
-                        if (elevenLabsWidget) {
-                            const endButtons = elevenLabsWidget.querySelectorAll('button');
-                            endButtons.forEach(button => {
-                                if (button.innerText.toLowerCase().includes('end') || 
-                                    button.innerText.toLowerCase().includes('stop') ||
-                                    button.getAttribute('aria-label')?.toLowerCase().includes('end')) {
-                                    button.click();
-                                }
-                            });
-                            
-                            // Also try to dispatch an event
-                            elevenLabsWidget.dispatchEvent(new CustomEvent('end-conversation', {
-                                bubbles: true,
-                                composed: true
-                            }));
-                        }
-                    } catch (error) {
-                        console.error('Error ending ElevenLabs session:', error);
-                    }
-                    
-                    // Create a simple report for incomplete interviews
-                    showReportModal();
+                    // After a brief delay, show next question
                     setTimeout(function() {
-                        modalLoading.style.display = 'none';
-                        modalContent.style.display = 'block';
+                        interviewTitle.textContent = 'AI Interviewer Question';
+                        interviewSubtitle.textContent = "Listen to the question, then respond.";
+                        instructionText.textContent = "Press the microphone button when you're ready to speak";
                         
-                        performanceRating.textContent = 'Incomplete';
-                        strengthsText.textContent = 'The interview was ended early, so a complete assessment is not available.';
-                        improvementText.textContent = 'Try to complete the full interview next time to get comprehensive feedback.';
+                        // Show a follow-up question (would be coming from the widget in reality)
+                        questionText.textContent = "Thank you for sharing that. Could you tell me about a challenging situation you faced at work and how you handled it?";
+                        
+                        // Simulate voice playback
+                        simulateVoicePlayback();
                     }, 2000);
                 }
             });
             
+            // End interview button
+            endButton.addEventListener('click', function() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                if (confirm('Are you sure you want to end the interview?')) {
+                    console.log('Ending interview');
+                    interviewEnded = true;
+                    interviewTitle.textContent = 'Interview Ended';
+                    interviewSubtitle.textContent = 'You ended the interview.';
+                    
+                    // Hide mic button
+                    micButton.style.display = 'none';
+                    
+                    // Try to end the conversation in the widget
+                    if (elevenLabsWidget) {
+                        try {
+                            // Try to find and click an end button
+                            const buttons = elevenLabsWidget.querySelectorAll('button');
+                            buttons.forEach(button => {
+                                const html = button.innerHTML || '';
+                                const ariaLabel = button.getAttribute('aria-label') || '';
+                                
+                                if (html.includes('end') || ariaLabel.includes('end')) {
+                                    button.click();
+                                    console.log('Clicked end button');
+                                }
+                            });
+                            
+                            // Also try dispatching an event
+                            elevenLabsWidget.dispatchEvent(new CustomEvent('end-conversation', { bubbles: true }));
+                            console.log('Dispatched end-conversation event');
+                            
+                        } catch (error) {
+                            console.error('Error ending conversation:', error);
+                        }
+                    }
+                    
+                    // Show report modal
+                    showReportModal();
+                    
+                    // In a real implementation, you'd get the report from the server
+                    // For now, just show a sample report after a delay
+                    setTimeout(function() {
+                        modalLoading.style.display = 'none';
+                        modalContent.style.display = 'block';
+                        
+                        // Sample report data
+                        const reportData = {
+                            overall: 'Good',
+                            strengths: 'Clear communication, relevant examples provided',
+                            improvement: 'Be more concise with answers, focus more on specific achievements'
+                        };
+                        
+                        document.getElementById('performance-rating').textContent = reportData.overall;
+                        document.getElementById('strengths-text').textContent = reportData.strengths;
+                        document.getElementById('improvement-text').textContent = reportData.improvement;
+                    }, 2000);
+                }
+            });
+            
+            // Modal close button
             modalClose.addEventListener('click', function() {
                 reportModal.classList.remove('active');
                 window.location.href = '/dashboard';
             });
             
-            // Helper functions
+            // Show report modal
             function showReportModal() {
                 reportModal.classList.add('active');
                 modalLoading.style.display = 'block';
                 modalContent.style.display = 'none';
             }
             
+            // Simulate voice playback animation
             function simulateVoicePlayback() {
                 // Make the waveform active during "playback"
                 const waveBars = document.querySelectorAll('.wave-bar');
@@ -1101,52 +879,108 @@
                 }, 3000); // Simulate 3 seconds of audio playback
             }
             
-            function fetchLatestReport() {
-                console.log('Fetching latest report');
-                fetch('/api/reports')
-                    .then(response => response.json())
-                    .then(reports => {
-                        console.log('Reports received:', reports);
-                        if (reports && reports.length > 0) {
-                            const latestReport = reports[0];
-                            modalLoading.style.display = 'none';
-                            modalContent.style.display = 'block';
-                            
-                            performanceRating.textContent = latestReport.content.overall || 'Good';
-                            strengthsText.textContent = latestReport.content.strengths || 'Clear communication';
-                            improvementText.textContent = latestReport.content.improvement || 'Be more concise with answers';
-                            
-                            viewReportButton.href = '/report/' + latestReport.id;
-                        } else {
-                            // Fallback for no reports
-                            console.log('No reports found, using fallback');
-                            modalLoading.style.display = 'none';
-                            modalContent.style.display = 'block';
-                            
-                            performanceRating.textContent = 'Pending';
-                            strengthsText.textContent = 'Your report will be available soon.';
-                            improvementText.textContent = 'Please check your dashboard shortly.';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching reports:', error);
-                        modalLoading.style.display = 'none';
-                        modalContent.style.display = 'block';
-                        
-                        performanceRating.textContent = 'Error';
-                        strengthsText.textContent = 'There was a problem retrieving your report.';
-                        improvementText.textContent = 'Please check your dashboard later.';
-                    });
-            }
-            
             // Auto-dismiss flash messages
             setTimeout(function() {
                 const flashMessages = document.querySelectorAll('.flash-message .alert');
                 flashMessages.forEach(function(message) {
-                    const alert = bootstrap.Alert.getOrCreateInstance(message);
-                    alert.close();
+                    const bsAlert = bootstrap.Alert.getOrCreateInstance(message);
+                    if (bsAlert) bsAlert.close();
                 });
             }, 5000);
+            
+            // Create a timer to check for messages from the widget
+            // This would detect when the widget changes state or sends a new question
+            function setupWidgetListeners() {
+                if (!elevenLabsWidget) return;
+                
+                // Listen for messages from the widget
+                window.addEventListener('message', function(event) {
+                    if (event.data && typeof event.data === 'object') {
+                        // Look for messages from the widget
+                        if (event.data.source === 'elevenlabs-convai' || event.data.type === 'elevenlabs') {
+                            console.log('Received message from widget:', event.data);
+                            
+                            // If it's a question, update the UI
+                            if (event.data.text) {
+                                questionText.textContent = event.data.text;
+                                
+                                // Update UI
+                                interviewTitle.textContent = 'AI Interviewer Question';
+                                interviewSubtitle.textContent = "Listen to the question, then respond.";
+                                instructionText.textContent = "Press the microphone button when you're ready to speak";
+                                
+                                // Simulate voice playback
+                                simulateVoicePlayback();
+                            }
+                            
+                            // If interview ended, show report
+                            if (event.data.status === 'completed' || event.data.type === 'interview_completed') {
+                                interviewEnded = true;
+                                showReportModal();
+                                
+                                // Get report data
+                                setTimeout(function() {
+                                    fetchReport();
+                                }, 2000);
+                            }
+                        }
+                    }
+                });
+                
+                // Try to observe DOM changes in the widget
+                try {
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            // Look for added nodes that might be messages
+                            mutation.addedNodes.forEach(function(node) {
+                                // Check for message text
+                                if (node.textContent && node.textContent.length > 20) {
+                                    console.log('Detected possible new message:', node.textContent);
+                                }
+                            });
+                        });
+                    });
+                    
+                    // Observe the widget
+                    observer.observe(elevenLabsWidget, { 
+                        childList: true, 
+                        subtree: true,
+                        characterData: true
+                    });
+                    
+                    console.log('Set up mutation observer for widget');
+                } catch (error) {
+                    console.error('Error setting up mutation observer:', error);
+                }
+            }
+            
+            // Start a timer to check for the widget and set up listeners
+            setTimeout(function checkForWidget() {
+                if (findElevenLabsWidget()) {
+                    setupWidgetListeners();
+                } else {
+                    setTimeout(checkForWidget, 1000);
+                }
+            }, 1000);
+            
+            // Sample function to fetch a report (would be a real API call)
+            function fetchReport() {
+                // In a real implementation, fetch from server
+                // For now, just show a sample report
+                modalLoading.style.display = 'none';
+                modalContent.style.display = 'block';
+                
+                // Sample report data
+                const reportData = {
+                    overall: 'Good',
+                    strengths: 'Clear communication, relevant examples provided',
+                    improvement: 'Be more concise with answers, focus more on specific achievements'
+                };
+                
+                document.getElementById('performance-rating').textContent = reportData.overall;
+                document.getElementById('strengths-text').textContent = reportData.strengths;
+                document.getElementById('improvement-text').textContent = reportData.improvement;
+            }
         });
     </script>
 </body>
