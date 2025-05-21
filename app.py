@@ -222,21 +222,6 @@ def purchase():
     
     return render_template('purchase.html')
 
-# WebSocket handling for interview
-@socketio.on('connect')
-def handle_connect():
-    if not current_user.is_authenticated:
-        return False
-    emit('status', {'message': 'Connected to interview server'})
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    emit('status', {'message': 'Disconnected from interview server'})
-
-# Keep a reference to the WebSocket connection
-elevenlabs_ws = None
-elevenlabs_ws_loop = None
-
 @socketio.on('start_interview')
 def handle_start_interview():
     global elevenlabs_ws, elevenlabs_ws_loop
@@ -245,14 +230,12 @@ def handle_start_interview():
         emit('error', {'message': 'Not enough credits'})
         return
 
-    # Start the interview process
     emit('interview_started', {'message': 'Interview started'})
 
     try:
         conversation_id = f"conv_{secrets.token_hex(12)}"
         session['conversation_id'] = conversation_id
 
-        # Prepare the initial metadata payload
         init_data = {
             "conversation_initiation_metadata_event": {
                 "conversation_id": conversation_id,
@@ -262,7 +245,7 @@ def handle_start_interview():
             "type": "conversation_initiation_metadata"
         }
 
-        uri = f"wss://api.elevenlabs.io/v1/convai/conversation?agent_id=agent_01jvjmatfbegaa4f88zkwdyd72"
+        uri = f"wss://api.elevenlabs.io/v1/convai/conversation?agent_id={ELEVENLABS_AGENT_ID}"
         headers = {
             "Authorization": f"Bearer {ELEVENLABS_API_KEY}"
         }
@@ -273,7 +256,7 @@ def handle_start_interview():
             global elevenlabs_ws_loop
             elevenlabs_ws_loop = loop
             loop.run_until_complete(start_ws(uri, headers, init_data))
-        
+
         threading.Thread(target=run_loop, daemon=True).start()
 
         emit('interviewer_message', {
@@ -283,27 +266,40 @@ def handle_start_interview():
     except Exception as e:
         app.logger.error(f"Error starting interview: {str(e)}")
         emit('interviewer_message', {
-            'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
+            'text': 'We encountered a problem connecting to the AI. Please try again shortly.'
         })
 
 
 async def start_ws(uri, headers, init_data):
     global elevenlabs_ws
 
-    async with websockets.connect(uri, extra_headers=headers) as ws:
-        elevenlabs_ws = ws
-        await ws.send(json.dumps(init_data))
+    ssl_context = ssl.create_default_context()
 
-        async for message in ws:
-            try:
-                response = json.loads(message)
-                if 'text' in response:
-                    socketio.emit('interviewer_message', {
-                        'text': response['text'],
-                        'audio_url': response.get('audio_url')
-                    })
-            except Exception as e:
-                app.logger.error(f"WebSocket message handling error: {str(e)}")
+    app.logger.info(f"Connecting to {uri} with headers {headers}")
+    try:
+        async with websockets.connect(
+            uri,
+            extra_headers=headers,
+            ssl=ssl_context
+        ) as ws:
+            elevenlabs_ws = ws
+            await ws.send(json.dumps(init_data))
+            app.logger.info("Sent initial metadata to ElevenLabs")
+
+            async for message in ws:
+                try:
+                    response = json.loads(message)
+                    app.logger.info(f"Received message from ElevenLabs: {response}")
+                    if 'text' in response:
+                        socketio.emit('interviewer_message', {
+                            'text': response['text'],
+                            'audio_url': response.get('audio_url')
+                        })
+                except Exception as e:
+                    app.logger.error(f"WebSocket message handling error: {str(e)}")
+
+    except Exception as e:
+        app.logger.error(f"WebSocket connection error: {str(e)}")
 
 
 @socketio.on('user_message')
