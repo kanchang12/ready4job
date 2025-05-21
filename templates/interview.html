@@ -83,6 +83,545 @@
             background-color: var(--danger-color);
         }
         
+        .interview-card {
+            flex: 1;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .interview-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        
+        .interview-subtitle {
+            color: var(--dark-color);
+            margin-bottom: 40px;
+            font-size: 1.2rem;
+        }
+        
+        .question-container {
+            background-color: var(--light-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 0 auto 40px;
+            max-width: 800px;
+            text-align: left;
+        }
+        
+        .question-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            color: var(--dark-color);
+        }
+        
+        .question-label i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .question-text {
+            font-size: 1.2rem;
+            color: var(--dark-color);
+        }
+        
+        .mic-button {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: var(--danger-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .mic-button.active {
+            background-color: var(--success-color);
+        }
+        
+        .mic-button i {
+            color: white;
+            font-size: 3rem;
+        }
+        
+        .instruction-text {
+            margin-top: 20px;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+        
+        .end-button {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            font-weight: 600;
+            margin-top: 40px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .end-button:hover {
+            background-color: #e04232;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .modal-container {
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--dark-color);
+        }
+        
+        .modal-loading {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f8f9fa;
+            border-radius: 50%;
+            border-top: 5px solid var(--primary-color);
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .report-summary {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin: 20px 0;
+        }
+        
+        .modal-actions {
+            margin-top: 20px;
+            text-align: right;
+        }
+        
+        .flash-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="flash-message">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">Ready4Job</a>
+            <div class="ms-auto">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Interview Container -->
+    <div class="interview-container">
+        <div class="interview-header">
+            <h2>AI Voice Interview</h2>
+            <div class="connection-status">
+                <div id="status-indicator" class="status-indicator status-connecting"></div>
+                <span id="connection-status-text">Connecting...</span>
+            </div>
+        </div>
+        
+        <div class="interview-card">
+            <h3 id="interview-title" class="interview-title">Interview Starting</h3>
+            <p id="interview-subtitle" class="interview-subtitle">The AI interviewer will ask you questions shortly.</p>
+            
+            <div class="question-container">
+                <div class="question-label">
+                    <i class="fas fa-comment-alt"></i> Current Question:
+                </div>
+                <div id="question-text" class="question-text">
+                    Waiting for the interview to begin...
+                </div>
+            </div>
+            
+            <p id="instruction-text" class="instruction-text">Press the microphone button when you're ready to speak</p>
+            
+            <div id="mic-button" class="mic-button">
+                <i class="fas fa-microphone"></i>
+            </div>
+            
+            <button id="end-button" class="end-button">
+                <i class="fas fa-stop-circle me-2"></i> End Interview
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal for Interview Completion -->
+    <div id="report-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h4>Interview Complete</h4>
+                <button id="modal-close" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="modal-loading" class="modal-loading">
+                <div class="loading-spinner"></div>
+                <p>Generating your interview feedback...</p>
+            </div>
+            
+            <div id="modal-content" style="display: none;">
+                <h5>Interview Feedback Summary</h5>
+                <div class="report-summary">
+                    <p><strong>Overall Performance:</strong> <span id="performance-rating">Good</span></p>
+                    <p><strong>Strengths:</strong> <span id="strengths-text">Clear communication, relevant examples</span></p>
+                    <p><strong>Areas for Improvement:</strong> <span id="improvement-text">Be more concise, provide specific achievements</span></p>
+                </div>
+                <p>Your interview has been completed and your feedback report is ready. A credit has been deducted from your account.</p>
+                <div class="modal-actions">
+                    <a id="view-report-button" href="{{ url_for('dashboard') }}" class="btn btn-primary">View Full Report</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const statusIndicator = document.getElementById('status-indicator');
+            const connectionStatusText = document.getElementById('connection-status-text');
+            const interviewTitle = document.getElementById('interview-title');
+            const interviewSubtitle = document.getElementById('interview-subtitle');
+            const questionText = document.getElementById('question-text');
+            const instructionText = document.getElementById('instruction-text');
+            const micButton = document.getElementById('mic-button');
+            const endButton = document.getElementById('end-button');
+            const reportModal = document.getElementById('report-modal');
+            const modalClose = document.getElementById('modal-close');
+            const modalLoading = document.getElementById('modal-loading');
+            const modalContent = document.getElementById('modal-content');
+            const performanceRating = document.getElementById('performance-rating');
+            const strengthsText = document.getElementById('strengths-text');
+            const improvementText = document.getElementById('improvement-text');
+            const viewReportButton = document.getElementById('view-report-button');
+            
+            // State variables
+            let interviewStarted = false;
+            let interviewEnded = false;
+            let micActive = false;
+            let connectionSuccess = false;
+            let reconnectAttempts = 0;
+            const MAX_RECONNECT_ATTEMPTS = 3;
+            
+            // Create Socket.IO connection with options for better reliability
+            const socket = io({
+                reconnection: true,
+                reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 20000
+            });
+            
+            // Socket connection events
+            socket.on('connect', function() {
+                console.log('Socket connected');
+                connectionSuccess = true;
+                statusIndicator.className = 'status-indicator status-connected';
+                connectionStatusText.textContent = 'Connected';
+                
+                // Start the interview after connection
+                setTimeout(function() {
+                    socket.emit('start_interview');
+                }, 1000);
+            });
+            
+            socket.on('connect_error', function(error) {
+                console.error('Connection error:', error);
+                statusIndicator.className = 'status-indicator status-disconnected';
+                connectionStatusText.textContent = 'Connection Error';
+                
+                // Handle reconnection limit
+                reconnectAttempts++;
+                if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                    interviewTitle.textContent = 'Connection Issues';
+                    interviewSubtitle.textContent = 'Unable to connect to the interview server. Please try again later.';
+                    questionText.textContent = 'There was a problem connecting to the interview service. This might be due to network issues or high server load.';
+                    micButton.style.display = 'none';
+                }
+            });
+            
+            socket.on('disconnect', function() {
+                console.log('Socket disconnected');
+                statusIndicator.className = 'status-indicator status-disconnected';
+                connectionStatusText.textContent = 'Disconnected';
+                
+                if (!interviewEnded && connectionSuccess) {
+                    interviewTitle.textContent = 'Connection Lost';
+                    interviewSubtitle.textContent = 'Lost connection to the interview server.';
+                    questionText.textContent = 'The connection to the interviewer was lost. If this persists, please refresh the page.';
+                }
+            });
+            
+            // Interview events
+            socket.on('status', function(data) {
+                console.log('Status message:', data.message);
+            });
+            
+            socket.on('error', function(data) {
+                console.error('Interview error:', data.message);
+                interviewTitle.textContent = 'Error';
+                interviewSubtitle.textContent = 'There was an error during the interview.';
+                questionText.textContent = data.message || 'An unknown error occurred.';
+            });
+            
+            socket.on('interview_started', function(data) {
+                console.log('Interview started');
+                interviewStarted = true;
+                interviewTitle.textContent = 'Interview Started';
+                interviewSubtitle.textContent = 'The interviewer will ask you questions.';
+                questionText.textContent = data.message || 'The interview has started. You will hear questions shortly.';
+            });
+            
+            socket.on('interviewer_message', function(data) {
+                console.log('Received interviewer message:', data.text);
+                
+                // Update display
+                interviewTitle.textContent = 'AI Interviewer Question';
+                interviewSubtitle.textContent = 'Listen to the question, then respond.';
+                questionText.textContent = data.text;
+                instructionText.textContent = 'Press the microphone button when you're ready to speak';
+                
+                // Reset mic button state
+                micActive = false;
+                micButton.classList.remove('active');
+                
+                // Play audio if available (simulated here since we can't access real audio)
+                console.log('Would play audio (simulated)');
+            });
+            
+            socket.on('interview_completed', function(data) {
+                console.log('Interview completed');
+                interviewEnded = true;
+                interviewTitle.textContent = 'Interview Completed';
+                interviewSubtitle.textContent = 'Your interview has finished.';
+                showReportModal();
+                
+                // Get the report
+                setTimeout(function() {
+                    fetchLatestReport();
+                }, 2000);
+            });
+            
+            // UI Event handlers
+            micButton.addEventListener('click', function() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                micActive = !micActive;
+                
+                if (micActive) {
+                    // Start "recording"
+                    console.log('Mic activated - would start recording');
+                    micButton.classList.add('active');
+                    interviewTitle.textContent = 'You are Speaking';
+                    interviewSubtitle.textContent = 'Speak your response clearly.';
+                    instructionText.textContent = 'Press the microphone button again when you're finished speaking';
+                } else {
+                    // End "recording" and send response
+                    console.log('Mic deactivated - sending response');
+                    micButton.classList.remove('active');
+                    interviewTitle.textContent = 'Processing Response';
+                    interviewSubtitle.textContent = 'Sending your response...';
+                    instructionText.textContent = 'Please wait...';
+                    
+                    // Simulate sending a response
+                    socket.emit('user_message', {
+                        text: 'Voice response from user (simulated)'
+                    });
+                }
+            });
+            
+            endButton.addEventListener('click', function() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                if (confirm('Are you sure you want to end the interview?')) {
+                    console.log('Ending interview early');
+                    interviewEnded = true;
+                    interviewTitle.textContent = 'Interview Ended';
+                    interviewSubtitle.textContent = 'You ended the interview early.';
+                    
+                    // Create a simple report for incomplete interviews
+                    showReportModal();
+                    setTimeout(function() {
+                        modalLoading.style.display = 'none';
+                        modalContent.style.display = 'block';
+                        
+                        performanceRating.textContent = 'Incomplete';
+                        strengthsText.textContent = 'The interview was ended early, so a complete assessment is not available.';
+                        improvementText.textContent = 'Try to complete the full interview next time to get comprehensive feedback.';
+                    }, 2000);
+                }
+            });
+            
+            modalClose.addEventListener('click', function() {
+                reportModal.classList.remove('active');
+                window.location.href = '/dashboard';
+            });
+            
+            // Helper functions
+            function showReportModal() {
+                reportModal.classList.add('active');
+                modalLoading.style.display = 'block';
+                modalContent.style.display = 'none';
+            }
+            
+            function fetchLatestReport() {
+                console.log('Fetching latest report');
+                fetch('/api/reports')
+                    .then(response => response.json())
+                    .then(reports => {
+                        console.log('Reports received:', reports);
+                        if (reports && reports.length > 0) {
+                            const latestReport = reports[0];
+                            modalLoading.style.display = 'none';
+                            modalContent.style.display = 'block';
+                            
+                            performanceRating.textContent = latestReport.content.overall || 'Good';
+                            strengthsText.textContent = latestReport.content.strengths || 'Clear communication';
+                            improvementText.textContent = latestReport.content.improvement || 'Be more concise with answers';
+                            
+                            viewReportButton.href = '/report/' + latestReport.id;
+                        } else {
+                            // Fallback for no reports
+                            console.log('No reports found, using fallback');
+                            modalLoading.style.display = 'none';
+                            modalContent.style.display = 'block';
+                            
+                            performanceRating.textContent = 'Pending';
+                            strengthsText.textContent = 'Your report will be available soon.';
+                            improvementText.textContent = 'Please check your dashboard shortly.';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching reports:', error);
+                        modalLoading.style.display = 'none';
+                        modalContent.style.display = 'block';
+                        
+                        performanceRating.textContent = 'Error';
+                        strengthsText.textContent = 'There was a problem retrieving your report.';
+                        improvementText.textContent = 'Please check your dashboard later.';
+                    });
+            }
+            
+            // Auto-dismiss flash messages
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message .alert');
+                flashMessages.forEach(function(message) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(message);
+                    alert.close();
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html> 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-connecting {
+            background-color: var(--warning-color);
+        }
+        
+        .status-connected {
+            background-color: var(--success-color);
+        }
+        
+        .status-disconnected {
+            background-color: var(--danger-color);
+        }
+        
         .voice-interface {
             flex: 1;
             background-color: white;
