@@ -233,34 +233,19 @@ def handle_start_interview():
     emit('interview_started', {'message': 'Interview started'})
 
     try:
-        conversation_id = f"conv_{secrets.token_hex(12)}"
-        session['conversation_id'] = conversation_id
-
-        init_data = {
-            "conversation_initiation_metadata_event": {
-                "conversation_id": conversation_id,
-                "agent_output_audio_format": "pcm_16000",
-                "user_input_audio_format": "pcm_16000"
-            },
-            "type": "conversation_initiation_metadata"
-        }
-
-        uri = f"wss://api.elevenlabs.io/v1/convai/conversation?agent_id={ELEVENLABS_AGENT_ID}"
-        headers = {
-            "Authorization": f"Bearer {ELEVENLABS_API_KEY}"
-        }
+        uri = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=agent_01jvjmatfbegaa4f88zkwdyd72"
 
         def run_loop():
             asyncio.set_event_loop(asyncio.new_event_loop())
             loop = asyncio.get_event_loop()
             global elevenlabs_ws_loop
             elevenlabs_ws_loop = loop
-            loop.run_until_complete(start_ws(uri, headers, init_data))
+            loop.run_until_complete(start_ws(uri))
 
         threading.Thread(target=run_loop, daemon=True).start()
 
         emit('interviewer_message', {
-            'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
+            'text': "Hello! I'm your AI interviewer. Let's start with you telling me a bit about yourself and your background."
         })
 
     except Exception as e:
@@ -270,33 +255,18 @@ def handle_start_interview():
         })
 
 
-async def start_ws(uri, headers, init_data):
+async def start_ws(uri):
     global elevenlabs_ws
 
-    ssl_context = ssl.create_default_context()
-
-    app.logger.info(f"Connecting to {uri} with headers {headers}")
     try:
-        async with websockets.connect(
-            uri,
-            extra_headers=headers,
-            ssl=ssl_context
-        ) as ws:
+        async with websockets.connect(uri) as ws:
             elevenlabs_ws = ws
-            await ws.send(json.dumps(init_data))
-            app.logger.info("Sent initial metadata to ElevenLabs")
+            # No headers, no init_data sent, just connect and do nothing or just stay connected
+            print("Connected to ElevenLabs websocket with no data sent")
 
             async for message in ws:
-                try:
-                    response = json.loads(message)
-                    app.logger.info(f"Received message from ElevenLabs: {response}")
-                    if 'text' in response:
-                        socketio.emit('interviewer_message', {
-                            'text': response['text'],
-                            'audio_url': response.get('audio_url')
-                        })
-                except Exception as e:
-                    app.logger.error(f"WebSocket message handling error: {str(e)}")
+                # If any message received, you can log or emit it
+                print(f"Received message: {message}")
 
     except Exception as e:
         app.logger.error(f"WebSocket connection error: {str(e)}")
