@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Ready4Job</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #2e59d9;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-color: #f8f9fc;
+            --dark-color: #5a5c69;
+        }
+        
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: var(--light-color);
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: var(--primary-color);
+            background-image: linear-gradient(180deg, var(--primary-color) 10%, var(--secondary-color) 100%);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding-top: 20px;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-heading {
+            padding: 15px 20px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        .sidebar-divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 15px 0;
+        }
+        
+        .nav-item {
+            padding: 0 10px;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: rgba(255, 255, 255, 0.8) !important;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: white !important;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-link i {
+            margin-right: 10px;
+            width: 25px;
+            text-align: center;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .credit-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+        
+        .dashboard-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .interview-button {
+            display: block;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        
+        .interview-button:hover {
+            background-color: var(--secondary-color);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .report-card {
+            padding: 15px;
+            border: 1px solid var(--light-color);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .report-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .report-date {
+            color: var(--dark-color);
+            font-size: 0.85rem;
+        }
+        
+        .status-container {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--light-color);
+        }
+        
+        .status-label {
+            width: 30%;
+            font-weight: 600;
+        }
+        
+        .status-bar-container {
+            width: 70%;
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .status-bar {
+            height: 100%;
+            border-radius: 5px;
+        }
+        
+        .purchase-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .purchase-option {
+            flex: 1;
+            min-width: 150px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .purchase-option:hover, .purchase-option.selected {
+            border-color: var(--primary-color);
+            background-color: var(--light-color);
+        }
+        
+        .purchase-option.best-value {
+            border-color: var(--success-color);
+            position: relative;
+        }
+        
+        .purchase-option.best-value::after {
+            content: 'Best Value';
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            background-color: var(--success-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .purchase-credit-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .purchase-price {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .flash-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-250px);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .main-content.sidebar-active {
+                margin-left: 250px;
+            }
+            
+            .menu-toggle {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 999;
+                width: 40px;
+                height: 40px;
+                background-color: var(--primary-color);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="flash-message">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Mobile Menu Toggle -->
+    <div class="menu-toggle d-lg-none">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-heading">
+            Ready4Job
+        </div>
+        <div class="sidebar-divider"></div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('interview') }}">
+                    <i class="fas fa-comments"></i>
+                    <span>New Interview</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('purchase') }}">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Purchase Credits</span>
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-divider"></div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+                <div class="credit-badge">
+                    <i class="fas fa-coins me-2"></i> {{ current_user.credits }} Credits
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Quick Interview Card -->
+                <div class="col-xl-4 col-lg-5">
+                    <div class="dashboard-card">
+                        <h5 class="mb-3"><i class="fas fa-comments me-2"></i> Start Practicing</h5>
+                        <p>Ready to improve your interview skills? Start a new practice session with our AI interviewer.</p>
+                        {% if current_user.credits > 0 %}
+                        <a href="{{ url_for('interview') }}" class="interview-button">
+                            <i class="fas fa-play me-2"></i> Start New Interview
+                        </a>
+                        {% else %}
+                        <p class="text-danger mt-3">You don't have enough credits. Please purchase more to continue.</p>
+                        <a href="{{ url_for('purchase') }}" class="interview-button">
+                            <i class="fas fa-shopping-cart me-2"></i> Purchase Credits
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="col-xl-8 col-lg-7">
+                    <div class="dashboard-card">
+                        <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i> Your Progress</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="border rounded p-3 text-center">
+                                    <h6 class="text-muted mb-1">Interviews</h6>
+                                    <h2 class="mb-0">{{ reports|length }}</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="border rounded p-3 text-center">
+                                    <h6 class="text-muted mb-1">Credits Used</h6>
+                                    <h2 class="mb-0">{{ 5 - current_user.credits + reports|length }}</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 text-center">
+                                    <h6 class="text-muted mb-1">Interview Time</h6>
+                                    <h2 class="mb-0">{{ reports|length * 15 }} min</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="status-container">
+                            <div class="status-label">Communication</div>
+                            <div class="status-bar-container">
+                                <div class="status-bar bg-primary" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="status-container">
+                            <div class="status-label">Confidence</div>
+                            <div class="status-bar-container">
+                                <div class="status-bar bg-success" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        <div class="status-container">
+                            <div class="status-label">Technical Knowledge</div>
+                            <div class="status-bar-container">
+                                <div class="status-bar bg-info" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="status-container">
+                            <div class="status-label">Problem Solving</div>
+                            <div class="status-bar-container">
+                                <div class="status-bar bg-warning" style="width: 70%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="dashboard-card">
+                        <h5 class="mb-4"><i class="fas fa-file-alt me-2"></i> Your Interview Reports</h5>
+                        
+                        {% if reports %}
+                            {% for report in reports %}
+                                <div class="report-card">
+                                    <div class="report-header">
+                                        <h6 class="mb-0">Interview Report</h6>
+                                        <span class="report-date">{{ report.timestamp.strftime('%B %d, %Y - %I:%M %p') }}</span>
+                                    </div>
+                                    <p class="mb-2"><strong>Overall Performance:</strong> {{ report.content.overall }}</p>
+                                    <p class="mb-2"><strong>Strengths:</strong> {{ report.content.strengths }}</p>
+                                    <p class="mb-0"><strong>Areas for Improvement:</strong> {{ report.content.improvement }}</p>
+                                    <div class="text-end mt-3">
+                                        <a href="{{ url_for('view_report', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">View Full Report</a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
+                                <p class="mb-0">You haven't completed any interviews yet.</p>
+                                <p>Start your first interview to get personalized feedback.</p>
+                                <a href="{{ url_for('interview') }}" class="btn btn-primary mt-2">Start First Interview</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            if (menuToggle) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    mainContent.classList.toggle('sidebar-active');
+                });
+            }
+            
+            // Auto-dismiss flash messages
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message .alert');
+                flashMessages.forEach(function(message) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(message);
+                    alert.close();
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

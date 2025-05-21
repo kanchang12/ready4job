@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview - Ready4Job</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #2e59d9;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-color: #f8f9fc;
+            --dark-color: #5a5c69;
+        }
+        
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: var(--light-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .interview-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .interview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: #f1f3f9;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-connecting {
+            background-color: var(--warning-color);
+        }
+        
+        .status-connected {
+            background-color: var(--success-color);
+        }
+        
+        .status-disconnected {
+            background-color: var(--danger-color);
+        }
+        
+        .chat-area {
+            flex: 1;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+        }
+        
+        .message-interviewer {
+            justify-content: flex-start;
+        }
+        
+        .message-user {
+            justify-content: flex-end;
+        }
+        
+        .message-system {
+            justify-content: center;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .message-interviewer .message-content {
+            background-color: #f1f3f9;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message-user .message-content {
+            background-color: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message-system .message-content {
+            background-color: #f8f9fa;
+            color: var(--dark-color);
+            max-width: 90%;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .input-area {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+        }
+        
+        .message-input {
+            flex: 1;
+            border: 1px solid #e9ecef;
+            border-radius: 25px;
+            padding: 10px 15px;
+            resize: none;
+            margin-right: 10px;
+        }
+        
+        .message-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .send-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .send-button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .send-button:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        
+        .interview-actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .end-interview-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .end-interview-btn:hover {
+            background-color: #d52a1a;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .modal-container {
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: all 0.3s;
+        }
+        
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--dark-color);
+        }
+        
+        .modal-loading {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f8f9fa;
+            border-radius: 50%;
+            border-top: 5px solid var(--primary-color);
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .report-summary {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 15px;
+            margin: 20px 0;
+        }
+        
+        .modal-actions {
+            margin-top: 20px;
+            text-align: right;
+        }
+        
+        .flash-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        @media (max-width: 768px) {
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="flash-message">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">Ready4Job</a>
+            <div class="ms-auto">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Interview Container -->
+    <div class="interview-container">
+        <div class="interview-header">
+            <h2>Practice Interview</h2>
+            <div class="connection-status">
+                <div id="status-indicator" class="status-indicator status-connecting"></div>
+                <span id="connection-status-text">Connecting...</span>
+            </div>
+        </div>
+        
+        <div class="chat-area">
+            <div id="messages" class="messages-container">
+                <div class="message message-system">
+                    <div class="message-content">The interview will begin shortly. Please wait for the AI interviewer to connect.</div>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <textarea id="message-input" class="message-input" placeholder="Type your message here..." rows="1"></textarea>
+                <button id="send-button" class="send-button" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="interview-actions">
+            <button id="end-interview-button" class="end-interview-btn">
+                <i class="fas fa-stop-circle me-2"></i> End Interview
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal for Interview Completion -->
+    <div id="report-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h4>Interview Complete</h4>
+                <button id="modal-close" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="modal-loading" class="modal-loading">
+                <div class="loading-spinner"></div>
+                <p>Generating your interview feedback...</p>
+            </div>
+            
+            <div id="modal-content" style="display: none;">
+                <h5>Interview Feedback Summary</h5>
+                <div class="report-summary">
+                    <p><strong>Overall Performance:</strong> <span id="performance-rating">Good</span></p>
+                    <p><strong>Strengths:</strong> <span id="strengths-text">Clear communication, relevant examples</span></p>
+                    <p><strong>Areas for Improvement:</strong> <span id="improvement-text">Be more concise, provide specific achievements</span></p>
+                </div>
+                <p>Your interview has been completed and your feedback report is ready. A credit has been deducted from your account.</p>
+                <div class="modal-actions">
+                    <a id="view-report-button" href="{{ url_for('dashboard') }}" class="btn btn-primary">View Full Report</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO and Scripts -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesContainer = document.getElementById('messages');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const statusIndicator = document.getElementById('status-indicator');
+            const connectionStatusText = document.getElementById('connection-status-text');
+            const endInterviewButton = document.getElementById('end-interview-button');
+            const reportModal = document.getElementById('report-modal');
+            const modalClose = document.getElementById('modal-close');
+            const modalLoading = document.getElementById('modal-loading');
+            const modalContent = document.getElementById('modal-content');
+            const performanceRating = document.getElementById('performance-rating');
+            const strengthsText = document.getElementById('strengths-text');
+            const improvementText = document.getElementById('improvement-text');
+            const viewReportButton = document.getElementById('view-report-button');
+            
+            let interviewStarted = false;
+            let interviewEnded = false;
+            
+            // Connect to Socket.IO
+            const socket = io();
+            
+            // Socket Events
+            socket.on('connect', function() {
+                statusIndicator.className = 'status-indicator status-connected';
+                connectionStatusText.textContent = 'Connected';
+                sendButton.disabled = false;
+                
+                // Add a slight delay before starting interview
+                setTimeout(function() {
+                    socket.emit('start_interview');
+                }, 1000);
+            });
+            
+            socket.on('disconnect', function() {
+                statusIndicator.className = 'status-indicator status-disconnected';
+                connectionStatusText.textContent = 'Disconnected';
+                sendButton.disabled = true;
+                
+                if (!interviewEnded) {
+                    addMessage('system', 'The connection to the interviewer was lost. Please refresh the page to try again.');
+                }
+            });
+            
+            socket.on('status', function(data) {
+                console.log('Status:', data.message);
+            });
+            
+            socket.on('error', function(data) {
+                addMessage('system', data.message);
+            });
+            
+            socket.on('interview_started', function(data) {
+                interviewStarted = true;
+                addMessage('system', 'Interview started. The interviewer will ask you questions now.');
+            });
+            
+            socket.on('interviewer_message', function(data) {
+                addMessage('interviewer', data.text);
+            });
+            
+            socket.on('interview_completed', function(data) {
+                interviewEnded = true;
+                showReportModal();
+            });
+            
+            // UI Events
+            sendButton.addEventListener('click', sendMessage);
+            
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+                
+                // Auto-resize textarea
+                setTimeout(() => {
+                    messageInput.style.height = 'auto';
+                    messageInput.style.height = (messageInput.scrollHeight) + 'px';
+                }, 0);
+            });
+            
+            endInterviewButton.addEventListener('click', function() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                interviewEnded = true;
+                addMessage('system', 'Interview ended. Generating your feedback report...');
+                showReportModal();
+                
+                // Simulate report generation (for demo purposes)
+                // In a real app, this would be processed by the server
+                setTimeout(function() {
+                    const report = {
+                        overall: 'Good',
+                        strengths: 'Clear communication, relevant examples provided, good engagement',
+                        improvement: 'Be more concise with answers, provide more specific achievements with metrics'
+                    };
+                    
+                    // Create the report
+                    fetch('/api/create_report', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ content: report })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            modalLoading.style.display = 'none';
+                            modalContent.style.display = 'block';
+                            
+                            performanceRating.textContent = report.overall;
+                            strengthsText.textContent = report.strengths;
+                            improvementText.textContent = report.improvement;
+                            
+                            viewReportButton.href = '/api/report/' + data.report_id;
+                        } else {
+                            console.error('Error creating report:', data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }, 3000);
+            });
+            
+            modalClose.addEventListener('click', function() {
+                reportModal.classList.remove('active');
+                window.location.href = '/dashboard';
+            });
+            
+            // Functions
+            function sendMessage() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                const text = messageInput.value.trim();
+                if (!text) return;
+                
+                addMessage('user', text);
+                socket.emit('user_message', { text: text });
+                
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+            
+            function addMessage(type, text) {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message message-${type}`;
+                
+                const contentElement = document.createElement('div');
+                contentElement.className = 'message-content';
+                contentElement.textContent = text;
+                
+                messageElement.appendChild(contentElement);
+                messagesContainer.appendChild(messageElement);
+                
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            function showReportModal() {
+                reportModal.classList.add('active');
+                modalLoading.style.display = 'block';
+                modalContent.style.display = 'none';
+            }
+            
+            // Auto-dismiss flash messages
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message .alert');
+                flashMessages.forEach(function(message) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(message);
+                    alert.close();
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

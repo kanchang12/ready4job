@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ready4Job - AI Interview Practice</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #2e59d9;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-color: #f8f9fc;
+            --dark-color: #5a5c69;
+        }
+        
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: var(--light-color);
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .btn-custom-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-custom-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 100px 0;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .hero-section h1 {
+            font-weight: 700;
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero-section p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background-color: var(--light-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+        }
+        
+        .testimonial-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .testimonial-quote {
+            font-size: 1.1rem;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+        }
+        
+        .testimonial-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--light-color);
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+        
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 50px 0;
+            margin-top: 100px;
+        }
+        
+        .flash-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 50px 0;
+                text-align: center;
+            }
+            
+            .hero-section h1 {
+                font-size: 2.2rem;
+            }
+            
+            .feature-card, .testimonial-card {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Ready4Job</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#testimonials">Testimonials</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="flash-message">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1>Practice Interviews with AI</h1>
+                    <p>Enhance your interview skills with our AI interviewer and receive personalized feedback to help you land your dream job.</p>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg px-4 me-md-2">Go to Dashboard</a>
+                    {% else %}
+                    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-4 me-md-2">Get Started</a>
+                    {% endif %}
+                </div>
+                <div class="col-lg-6 text-center d-none d-lg-block">
+                    <img src="https://via.placeholder.com/600x400" alt="Interview Illustration" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5" id="features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">How It Works</h2>
+                <p class="lead">Practice, get feedback, improve and land your dream job</p>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3>Practice Interviews</h3>
+                        <p>Engage in realistic interview conversations with our AI interviewer. Answer questions just like you would in a real interview.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Detailed Feedback</h3>
+                        <p>Receive comprehensive feedback on your responses, highlighting strengths and areas for improvement.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>Improve & Succeed</h3>
+                        <p>Use insights from your practice sessions to refine your interview skills and boost your confidence.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Credit System Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 class="fw-bold">Credit System</h2>
+                    <p class="lead mb-4">Flexible options to fit your preparation needs</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-3"><i class="fas fa-check-circle text-success me-2"></i> <strong>Free Trial:</strong> 5 credits for new users</li>
+                        <li class="mb-3"><i class="fas fa-check-circle text-success me-2"></i> <strong>One Interview:</strong> Costs 1 credit</li>
+                        <li class="mb-3"><i class="fas fa-check-circle text-success me-2"></i> <strong>Affordable Packages:</strong> Purchase more credits as needed</li>
+                    </ul>
+                    <a href="{{ url_for('register') }}" class="btn btn-custom-primary">Start with Free Credits</a>
+                </div>
+                <div class="col-md-6 text-center mt-4 mt-md-0">
+                    <div class="p-4 bg-white rounded shadow-sm">
+                        <h3 class="mb-4">Credit Packages</h3>
+                        <div class="d-flex justify-content-around mb-3">
+                            <div class="text-center p-3">
+                                <h4>10</h4>
+                                <p class="mb-0">Credits</p>
+                                <p class="fw-bold">$20</p>
+                            </div>
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h4>25</h4>
+                                <p class="mb-0">Credits</p>
+                                <p class="fw-bold">$45</p>
+                                <span class="badge bg-success">Best Value</span>
+                            </div>
+                            <div class="text-center p-3">
+                                <h4>50</h4>
+                                <p class="mb-0">Credits</p>
+                                <p class="fw-bold">$80</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-5" id="testimonials">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">What Our Users Say</h2>
+                <p class="lead">Hear from people who have improved their interview success</p>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="testimonial-card">
+                        <p class="testimonial-quote">"Ready4Job helped me prepare for my tech interview. The AI interviewer asked me relevant questions, and the feedback was incredibly helpful in identifying areas I needed to work on."</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">Sarah K.</h5>
+                                <p class="text-muted mb-0">Software Engineer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="testimonial-card">
+                        <p class="testimonial-quote">"I was nervous about my first interview after graduation, but after practicing with Ready4Job, I felt confident and prepared. I got the job on my first try!"</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">Michael T.</h5>
+                                <p class="text-muted mb-0">Marketing Specialist</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h4 class="mb-4">Ready4Job</h4>
+                    <p>Helping job seekers practice and improve their interview skills with AI-powered interviews and personalized feedback.</p>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="mb-4">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-white">Home</a></li>
+                        <li class="mb-2"><a href="#features" class="text-white">Features</a></li>
+                        <li class="mb-2"><a href="#testimonials" class="text-white">Testimonials</a></li>
+                        <li class="mb-2"><a href="{{ url_for('login') }}" class="text-white">Login</a></li>
+                        <li class="mb-2"><a href="{{ url_for('register') }}" class="text-white">Register</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-4">Contact</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-envelope me-2"></i> support@ready4job.com</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i> (123) 456-7890</li>
+                        <li class="mb-2">
+                            <a href="#" class="text-white me-2"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="text-white me-2"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-light">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2025 Ready4Job. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss flash messages
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message .alert');
+                flashMessages.forEach(function(message) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(message);
+                    alert.close();
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
+                <p class="lead">Hear from people who have improved their interview success</p>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="testimonial-card">
+                        <p class="testimonial-quote">"Ready4Job helped me prepare for my tech interview. The AI interviewer asked me relevant questions, and the feedback was incredibly helpful in identifying areas I needed to work on."</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">Sarah K.</h5>
+                                <p class="text-muted mb-0">Software Engineer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="testimonial-card">
+                        <p class="testimonial-quote">"I was nervous about my first interview after graduation, but after practicing with Ready4Job, I felt confident and prepared. I got the job on my first try!"</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">Michael T.</h5>
+                                <p class="text-muted mb-0">Marketing Specialist</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Authentication Section -->
+    <section class="py-5" id="auth">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="auth-container">
+                        <div class="auth-tabs">
+                            <div id="login-tab" class="auth-tab {% if active_form != 'register' %}active{% endif %}">Login</div>
+                            <div id="register-tab" class="auth-tab {% if active_form == 'register' %}active{% endif %}">Register</div>
+                        </div>
+                        
+                        <div class="auth-form-container">
+                            <!-- Login Form -->
+                            <form id="login-form" action="{{ url_for('login') }}" method="post" class="auth-form {% if active_form != 'register' %}active{% endif %}">
+                                <div class="mb-3">
+                                    <label for="login-email" class="form-label">Email address</label>
+                                    <input type="email" class="form-control" id="login-email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="login-password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="login-password" name="password" required>
+                                </div>
+                                <button type="submit" class="btn btn-custom-primary w-100">Login</button>
+                            </form>
+                            
+                            <!-- Register Form -->
+                            <form id="register-form" action="{{ url_for('register') }}" method="post" class="auth-form {% if active_form == 'register' %}active{% endif %}">
+                                <div class="mb-3">
+                                    <label for="register-email" class="form-label">Email address</label>
+                                    <input type="email" class="form-control" id="register-email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="register-password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="register-password" name="password" required minlength="6">
+                                    <div class="form-text">Password must be at least 6 characters long.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="register-confirm-password" class="form-label">Confirm Password</label>
+                                    <input type="password" class="form-control" id="register-confirm-password" required minlength="6">
+                                    <div id="password-match-feedback" class="form-text"></div>
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="terms-check" required>
+                                    <label class="form-check-label" for="terms-check">I agree to the Terms & Conditions</label>
+                                </div>
+                                <button type="submit" class="btn btn-custom-primary w-100" id="register-btn">Register</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h4 class="mb-4">Ready4Job</h4>
+                    <p>Helping job seekers practice and improve their interview skills with AI-powered interviews and personalized feedback.</p>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="mb-4">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-white">Home</a></li>
+                        <li class="mb-2"><a href="#features" class="text-white">Features</a></li>
+                        <li class="mb-2"><a href="#testimonials" class="text-white">Testimonials</a></li>
+                        <li class="mb-2"><a href="#auth" class="text-white">Login/Register</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="mb-4">Contact</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-envelope me-2"></i> support@ready4job.com</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i> (123) 456-7890</li>
+                        <li class="mb-2">
+                            <a href="#" class="text-white me-2"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="text-white me-2"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-light">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2025 Ready4Job. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching functionality
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            
+            loginTab.addEventListener('click', function() {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.add('active');
+                registerForm.classList.remove('active');
+            });
+            
+            registerTab.addEventListener('click', function() {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.add('active');
+                loginForm.classList.remove('active');
+            });
+            
+            // Password confirmation validation
+            const passwordInput = document.getElementById('register-password');
+            const confirmPasswordInput = document.getElementById('register-confirm-password');
+            const passwordFeedback = document.getElementById('password-match-feedback');
+            const registerBtn = document.getElementById('register-btn');
+            
+            function validatePassword() {
+                if (passwordInput.value !== confirmPasswordInput.value) {
+                    passwordFeedback.textContent = 'Passwords do not match';
+                    passwordFeedback.className = 'form-text text-danger';
+                    registerBtn.disabled = true;
+                } else {
+                    passwordFeedback.textContent = 'Passwords match';
+                    passwordFeedback.className = 'form-text text-success';
+                    registerBtn.disabled = false;
+                }
+            }
+            
+            passwordInput.addEventListener('keyup', validatePassword);
+            confirmPasswordInput.addEventListener('keyup', validatePassword);
+            
+            // Auto-dismiss flash messages
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message .alert');
+                flashMessages.forEach(function(message) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(message);
+                    alert.close();
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
