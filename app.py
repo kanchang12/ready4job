@@ -241,64 +241,42 @@ def handle_start_interview():
     # Start the interview process
     emit('interview_started', {'message': 'Interview started'})
     
-    # Connect to Eleven Labs and start the interview
     try:
-        # Use Eleven Labs REST API to initialize the conversation
+        # Prepare headers for Eleven Labs API
         headers = {
             'xi-api-key': ELEVENLABS_API_KEY,
             'Content-Type': 'application/json'
         }
         
-        # Initialize the conversation with Eleven Labs
+        # Create the exact conversation initialization format required
         init_data = {
-            'user_id': str(current_user.id),
-            'agent_id': ELEVENLABS_AGENT_ID,
-            'callback_url': f"{request.host_url.rstrip('/')}/api/interview/callback",
-            'metadata': {
-                'session_type': 'interview',
-                'user_email': current_user.email
-            }
+            "conversation_initiation_metadata_event": {
+                "conversation_id": "",
+                "agent_output_audio_format": "pcm_16000",
+                "user_input_audio_format": "pcm_16000"
+            },
+            "type": "conversation_initiation_metadata"
         }
         
-        # For debugging
+        # Store the conversation ID in session
+        session['conversation_id'] = init_data["conversation_initiation_metadata_event"]["conversation_id"]
+        
+        # Log the initialization data for debugging
         app.logger.info(f"Initializing Eleven Labs conversation with data: {init_data}")
         
-        # Try different methods and endpoints based on the error message in the logs
-        # First try GET method since the error mentioned MethodGET
-        try:
-            # Try GET request first
-            response = requests.get(
-                f"{ELEVENLABS_BASE_URL}/v1/convai/conversations", 
-                headers=headers,
-                params=init_data  # Use params for GET request instead of json
-            )
-            app.logger.info(f"GET request status: {response.status_code}")
-            
-            # If GET fails, try POST
-            if response.status_code != 200:
-                response = requests.post(
-                    f"{ELEVENLABS_BASE_URL}/v1/convai/conversations", 
-                    headers=headers,
-                    json=init_data
-                )
-                app.logger.info(f"POST request status: {response.status_code}")
-        
-        except Exception as e:
-            app.logger.error(f"First endpoint attempt failed: {str(e)}")
-            # Try alternative endpoint with GET
-            response = requests.get(
-                f"{ELEVENLABS_BASE_URL}/v1/conversation", 
-                headers=headers,
-                params=init_data  # Use params for GET request
-            )
+        # Send the request to Eleven Labs API
+        response = requests.post(
+            f"{ELEVENLABS_BASE_URL}/v1/convai/conversations", 
+            headers=headers,
+            json=init_data
+        )
         
         # Log the response for debugging
+        app.logger.info(f"Eleven Labs response status: {response.status_code}")
         app.logger.info(f"Eleven Labs response text: {response.text}")
         
+        # Process the response
         if response.status_code == 200:
-            conversation_data = response.json()
-            session['conversation_id'] = conversation_data.get('conversation_id')
-            
             # Send initial message from the interviewer
             emit('interviewer_message', {
                 'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
@@ -307,21 +285,19 @@ def handle_start_interview():
             # If we can't connect to Eleven Labs, use a fallback mode
             app.logger.error(f"Error initializing Eleven Labs conversation: {response.text}")
             
-            # Store a fallback conversation ID
-            session['conversation_id'] = f"fallback_{str(current_user.id)}_{int(datetime.utcnow().timestamp())}"
-            
-            # Send initial message anyway to allow the interview to proceed
+            # Keep using the same conversation ID for future requests
             emit('interviewer_message', {
                 'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
             })
             
     except Exception as e:
         app.logger.error(f"Error starting interview: {str(e)}")
-        # Use fallback mode
-        session['conversation_id'] = f"fallback_{str(current_user.id)}_{int(datetime.utcnow().timestamp())}"
+        # Use fallback mode but maintain the same conversation ID format
+        session['conversation_id'] = f"conv_{secrets.token_hex(12)}"
         emit('interviewer_message', {
             'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
         })
+            
 
 @socketio.on('user_message')
 def handle_user_message(data):
