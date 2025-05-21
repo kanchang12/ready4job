@@ -1,0 +1,15 @@
+Flask
+Flask-SQLAlchemy
+Flask-SocketIO
+Flask-Login
+python-dotenv
+psycopg2-binary
+Werkzeug
+gunicorn
+gevent
+gevent-websocket
+websockets
+eventlet
+python-socketio
+requests
+certifi
