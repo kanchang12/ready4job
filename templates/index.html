@@ -138,6 +138,108 @@
             right: 20px;
             z-index: 9999;
         }
+        
+        /* Interactive visual element */
+        .interview-visual {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+        }
+        
+        .visual-header {
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .visual-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        .visual-dots {
+            display: flex;
+        }
+        
+        .visual-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+        
+        .dot-red { background-color: #ff6b6b; }
+        .dot-yellow { background-color: #feca57; }
+        .dot-green { background-color: #1dd1a1; }
+        
+        .message-container {
+            height: 340px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .chat-message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .ai-message {
+            background-color: rgba(255, 255, 255, 0.25);
+            border-bottom-left-radius: 4px;
+            margin-right: auto;
+        }
+        
+        .user-message {
+            background-color: rgba(255, 255, 255, 0.35);
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.25);
+            border-radius: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: white;
+            margin-right: 3px;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 100% { opacity: 0.4; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-5px); }
+        }
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -152,6 +254,14 @@
             
             .feature-card, .testimonial-card {
                 margin-bottom: 20px;
+            }
+            
+            .interview-visual {
+                height: 300px;
+            }
+            
+            .message-container {
+                height: 240px;
             }
         }
     </style>
@@ -220,7 +330,27 @@
                     {% endif %}
                 </div>
                 <div class="col-lg-6 text-center d-none d-lg-block">
-                    <img src="https://via.placeholder.com/600x400" alt="Interview Illustration" class="img-fluid">
+                    <!-- Interactive visual element replacing the image -->
+                    <div class="interview-visual">
+                        <div class="visual-header">
+                            <div class="visual-title">AI Interview Session</div>
+                            <div class="visual-dots">
+                                <div class="visual-dot dot-red"></div>
+                                <div class="visual-dot dot-yellow"></div>
+                                <div class="visual-dot dot-green"></div>
+                            </div>
+                        </div>
+                        <div class="message-container" id="visualMessages">
+                            <div class="chat-message ai-message">Hello! I'm your AI interviewer. Let's start with you telling me about yourself.</div>
+                            <div class="chat-message user-message">Hi! I'm a software developer with 3 years of experience building web applications.</div>
+                            <div class="chat-message ai-message">Great! What specific technologies are you most experienced with?</div>
+                            <div class="typing-indicator">
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -397,190 +527,56 @@
                     alert.close();
                 });
             }, 5000);
-        });
-    </script>
-</body>
-</html>
-                <p class="lead">Hear from people who have improved their interview success</p>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="testimonial-card">
-                        <p class="testimonial-quote">"Ready4Job helped me prepare for my tech interview. The AI interviewer asked me relevant questions, and the feedback was incredibly helpful in identifying areas I needed to work on."</p>
-                        <div class="testimonial-author">
-                            <div class="testimonial-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">Sarah K.</h5>
-                                <p class="text-muted mb-0">Software Engineer</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="testimonial-card">
-                        <p class="testimonial-quote">"I was nervous about my first interview after graduation, but after practicing with Ready4Job, I felt confident and prepared. I got the job on my first try!"</p>
-                        <div class="testimonial-author">
-                            <div class="testimonial-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">Michael T.</h5>
-                                <p class="text-muted mb-0">Marketing Specialist</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Authentication Section -->
-    <section class="py-5" id="auth">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8 col-lg-6">
-                    <div class="auth-container">
-                        <div class="auth-tabs">
-                            <div id="login-tab" class="auth-tab {% if active_form != 'register' %}active{% endif %}">Login</div>
-                            <div id="register-tab" class="auth-tab {% if active_form == 'register' %}active{% endif %}">Register</div>
-                        </div>
+            
+            // Animate the interview visual
+            const messages = [
+                { type: 'ai', text: 'What kind of work environment do you thrive in?' },
+                { type: 'user', text: 'I prefer collaborative environments where team members support each other while still having autonomy over their work.' },
+                { type: 'ai', text: 'Can you describe a challenging project you worked on and how you overcame obstacles?' },
+                { type: 'user', text: 'In my last role, we had to migrate a legacy system to a modern architecture with minimal downtime...' },
+                { type: 'ai', text: 'How do you handle feedback, especially critical feedback?' }
+            ];
+            
+            const messagesContainer = document.getElementById('visualMessages');
+            const typingIndicator = document.querySelector('.typing-indicator');
+            let messageIndex = 0;
+            
+            function addMessage() {
+                if (messageIndex >= messages.length) return;
+                
+                const message = messages[messageIndex];
+                messageIndex++;
+                
+                // Hide typing indicator
+                typingIndicator.style.display = 'none';
+                
+                // Create new message
+                const messageElement = document.createElement('div');
+                messageElement.className = `chat-message ${message.type}-message`;
+                messageElement.textContent = message.text;
+                
+                // Add to container
+                messagesContainer.appendChild(messageElement);
+                
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Show typing indicator before next AI message
+                if (messageIndex < messages.length && messages[messageIndex].type === 'ai') {
+                    setTimeout(() => {
+                        typingIndicator.style.display = 'inline-block';
+                        messagesContainer.appendChild(typingIndicator);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
                         
-                        <div class="auth-form-container">
-                            <!-- Login Form -->
-                            <form id="login-form" action="{{ url_for('login') }}" method="post" class="auth-form {% if active_form != 'register' %}active{% endif %}">
-                                <div class="mb-3">
-                                    <label for="login-email" class="form-label">Email address</label>
-                                    <input type="email" class="form-control" id="login-email" name="email" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="login-password" class="form-label">Password</label>
-                                    <input type="password" class="form-control" id="login-password" name="password" required>
-                                </div>
-                                <button type="submit" class="btn btn-custom-primary w-100">Login</button>
-                            </form>
-                            
-                            <!-- Register Form -->
-                            <form id="register-form" action="{{ url_for('register') }}" method="post" class="auth-form {% if active_form == 'register' %}active{% endif %}">
-                                <div class="mb-3">
-                                    <label for="register-email" class="form-label">Email address</label>
-                                    <input type="email" class="form-control" id="register-email" name="email" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="register-password" class="form-label">Password</label>
-                                    <input type="password" class="form-control" id="register-password" name="password" required minlength="6">
-                                    <div class="form-text">Password must be at least 6 characters long.</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="register-confirm-password" class="form-label">Confirm Password</label>
-                                    <input type="password" class="form-control" id="register-confirm-password" required minlength="6">
-                                    <div id="password-match-feedback" class="form-text"></div>
-                                </div>
-                                <div class="mb-3 form-check">
-                                    <input type="checkbox" class="form-check-input" id="terms-check" required>
-                                    <label class="form-check-label" for="terms-check">I agree to the Terms & Conditions</label>
-                                </div>
-                                <button type="submit" class="btn btn-custom-primary w-100" id="register-btn">Register</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-4 mb-md-0">
-                    <h4 class="mb-4">Ready4Job</h4>
-                    <p>Helping job seekers practice and improve their interview skills with AI-powered interviews and personalized feedback.</p>
-                </div>
-                <div class="col-md-4 mb-4 mb-md-0">
-                    <h5 class="mb-4">Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><a href="#" class="text-white">Home</a></li>
-                        <li class="mb-2"><a href="#features" class="text-white">Features</a></li>
-                        <li class="mb-2"><a href="#testimonials" class="text-white">Testimonials</a></li>
-                        <li class="mb-2"><a href="#auth" class="text-white">Login/Register</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5 class="mb-4">Contact</h5>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><i class="fas fa-envelope me-2"></i> support@ready4job.com</li>
-                        <li class="mb-2"><i class="fas fa-phone me-2"></i> (123) 456-7890</li>
-                        <li class="mb-2">
-                            <a href="#" class="text-white me-2"><i class="fab fa-facebook-f"></i></a>
-                            <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i></a>
-                            <a href="#" class="text-white me-2"><i class="fab fa-linkedin-in"></i></a>
-                            <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <hr class="my-4 bg-light">
-            <div class="text-center">
-                <p class="mb-0">&copy; 2025 Ready4Job. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Tab switching functionality
-            const loginTab = document.getElementById('login-tab');
-            const registerTab = document.getElementById('register-tab');
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-            
-            loginTab.addEventListener('click', function() {
-                loginTab.classList.add('active');
-                registerTab.classList.remove('active');
-                loginForm.classList.add('active');
-                registerForm.classList.remove('active');
-            });
-            
-            registerTab.addEventListener('click', function() {
-                registerTab.classList.add('active');
-                loginTab.classList.remove('active');
-                registerForm.classList.add('active');
-                loginForm.classList.remove('active');
-            });
-            
-            // Password confirmation validation
-            const passwordInput = document.getElementById('register-password');
-            const confirmPasswordInput = document.getElementById('register-confirm-password');
-            const passwordFeedback = document.getElementById('password-match-feedback');
-            const registerBtn = document.getElementById('register-btn');
-            
-            function validatePassword() {
-                if (passwordInput.value !== confirmPasswordInput.value) {
-                    passwordFeedback.textContent = 'Passwords do not match';
-                    passwordFeedback.className = 'form-text text-danger';
-                    registerBtn.disabled = true;
-                } else {
-                    passwordFeedback.textContent = 'Passwords match';
-                    passwordFeedback.className = 'form-text text-success';
-                    registerBtn.disabled = false;
+                        setTimeout(addMessage, 2000);
+                    }, 1000);
+                } else if (messageIndex < messages.length) {
+                    setTimeout(addMessage, 2000);
                 }
             }
             
-            passwordInput.addEventListener('keyup', validatePassword);
-            confirmPasswordInput.addEventListener('keyup', validatePassword);
-            
-            // Auto-dismiss flash messages
-            setTimeout(function() {
-                const flashMessages = document.querySelectorAll('.flash-message .alert');
-                flashMessages.forEach(function(message) {
-                    const alert = bootstrap.Alert.getOrCreateInstance(message);
-                    alert.close();
-                });
-            }, 5000);
+            // Start the animation after 2 seconds
+            setTimeout(addMessage, 2000);
         });
     </script>
 </body>
