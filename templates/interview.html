@@ -359,6 +359,20 @@
             z-index: 9999;
         }
         
+        /* Hide ElevenLabs Widget completely */
+        #elevenlabs-widget-container {
+            position: absolute !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            width: 0 !important;
+            overflow: hidden !important;
+            z-index: -9999 !important;
+            top: -9999px !important;
+            left: -9999px !important;
+        }
+        
         @media (max-width: 768px) {
             .voice-visualization {
                 height: 100px;
@@ -502,280 +516,638 @@
         </div>
     </div>
 
-    <!-- JavaScript -->
-    // Complete script section with all string fixes applied 
-// Replace the entire script section in your interview.html file with this
+    <!-- Hidden ElevenLabs Widget -->
+    <div id="elevenlabs-widget-container">
+        <elevenlabs-convai agent-id="agent_01jvjmatfbegaa4f88zkwdyd72"></elevenlabs-convai>
+    </div>
+    <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // DOM Elements
-        const statusIndicator = document.getElementById('status-indicator');
-        const connectionStatusText = document.getElementById('connection-status-text');
-        const loaderOverlay = document.getElementById('loader-overlay');
-        const interviewTitle = document.getElementById('interview-title');
-        const interviewSubtitle = document.getElementById('interview-subtitle');
-        const questionText = document.getElementById('question-text');
-        const instructionText = document.getElementById('instruction-text');
-        const micButton = document.getElementById('mic-button');
-        const waveform = document.getElementById('waveform');
-        const endButton = document.getElementById('end-button');
-        const reportModal = document.getElementById('report-modal');
-        const modalClose = document.getElementById('modal-close');
-        const modalLoading = document.getElementById('modal-loading');
-        const modalContent = document.getElementById('modal-content');
-        const performanceRating = document.getElementById('performance-rating');
-        const strengthsText = document.getElementById('strengths-text');
-        const improvementText = document.getElementById('improvement-text');
-        const viewReportButton = document.getElementById('view-report-button');
-        
-        // State variables
-        let interviewStarted = false;
-        let interviewEnded = false;
-        let micActive = false;
-        let connectionSuccess = false;
-        let reconnectAttempts = 0;
-        const MAX_RECONNECT_ATTEMPTS = 3;
-        
-        // Create Socket.IO connection with options for better reliability
-        const socket = io({
-            reconnection: true,
-            reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            timeout: 20000
-        });
-        
-        // Socket connection events
-        socket.on('connect', function() {
-            console.log('Socket connected');
-            connectionSuccess = true;
-            statusIndicator.className = 'status-indicator status-connected';
-            connectionStatusText.textContent = 'Connected';
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const statusIndicator = document.getElementById('status-indicator');
+            const connectionStatusText = document.getElementById('connection-status-text');
+            const loaderOverlay = document.getElementById('loader-overlay');
+            const interviewTitle = document.getElementById('interview-title');
+            const interviewSubtitle = document.getElementById('interview-subtitle');
+            const questionText = document.getElementById('question-text');
+            const instructionText = document.getElementById('instruction-text');
+            const micButton = document.getElementById('mic-button');
+            const waveform = document.getElementById('waveform');
+            const endButton = document.getElementById('end-button');
+            const reportModal = document.getElementById('report-modal');
+            const modalClose = document.getElementById('modal-close');
+            const modalLoading = document.getElementById('modal-loading');
+            const modalContent = document.getElementById('modal-content');
+            const performanceRating = document.getElementById('performance-rating');
+            const strengthsText = document.getElementById('strengths-text');
+            const improvementText = document.getElementById('improvement-text');
+            const viewReportButton = document.getElementById('view-report-button');
             
-            // Hide loader after brief delay
-            setTimeout(function() {
-                loaderOverlay.style.opacity = '0';
-                setTimeout(function() {
-                    loaderOverlay.style.display = 'none';
-                }, 300);
-                
-                // Start the interview after connection
-                socket.emit('start_interview');
-            }, 1500);
-        });
-        
-        socket.on('connect_error', function(error) {
-            console.error('Connection error:', error);
-            statusIndicator.className = 'status-indicator status-disconnected';
-            connectionStatusText.textContent = 'Connection Error';
+            // ElevenLabs Widget Integration
+            let elevenLabsWidget = null;
+            let elevenLabsInitialized = false;
+            let widgetLoaded = false;
+            let currentQuestion = "";
+            let userResponses = [];
             
-            // Handle reconnection limit
-            reconnectAttempts++;
-            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-                interviewTitle.textContent = 'Connection Issues';
-                interviewSubtitle.textContent = 'Unable to connect to the interview server. Please try again later.';
-                questionText.textContent = 'There was a problem connecting to the interview service. This might be due to network issues or high server load.';
-                micButton.style.display = 'none';
-            }
-        });
-        
-        socket.on('disconnect', function() {
-            console.log('Socket disconnected');
-            statusIndicator.className = 'status-indicator status-disconnected';
-            connectionStatusText.textContent = 'Disconnected';
-            
-            if (!interviewEnded && connectionSuccess) {
-                interviewTitle.textContent = 'Connection Lost';
-                interviewSubtitle.textContent = 'Lost connection to the interview server.';
-                questionText.textContent = 'The connection to the interviewer was lost. If this persists, please refresh the page.';
-            }
-        });
-        
-        // Interview events
-        socket.on('status', function(data) {
-            console.log('Status message:', data.message);
-        });
-        
-        socket.on('error', function(data) {
-            console.error('Interview error:', data.message);
-            interviewTitle.textContent = 'Error';
-            interviewSubtitle.textContent = 'There was an error during the interview.';
-            questionText.textContent = data.message || 'An unknown error occurred.';
-        });
-        
-        socket.on('interview_started', function(data) {
-            console.log('Interview started');
-            interviewStarted = true;
-            interviewTitle.textContent = 'Interview Started';
-            interviewSubtitle.textContent = 'The interviewer will ask you questions.';
-            questionText.textContent = data.message || 'The interview has started. You will hear questions shortly.';
-        });
-        
-        socket.on('interviewer_message', function(data) {
-            console.log('Received interviewer message:', data.text);
-            
-            // Update display
-            interviewTitle.textContent = 'AI Interviewer Question';
-            interviewSubtitle.textContent = "Listen to the question, then respond.";
-            questionText.textContent = data.text;
-            instructionText.textContent = "Press the microphone button when you're ready to speak";
-            
-            // Reset mic button state
-            micActive = false;
-            micButton.classList.remove('active');
-            
-            // Simulate voice playback
-            simulateVoicePlayback();
-        });
-        
-        socket.on('interview_completed', function(data) {
-            console.log('Interview completed');
-            interviewEnded = true;
-            interviewTitle.textContent = 'Interview Completed';
-            interviewSubtitle.textContent = 'Your interview has finished.';
-            showReportModal();
-            
-            // Get the report
-            setTimeout(function() {
-                fetchLatestReport();
-            }, 2000);
-        });
-        
-        // UI Event handlers
-        micButton.addEventListener('click', function() {
-            if (!interviewStarted || interviewEnded) return;
-            
-            micActive = !micActive;
-            
-            if (micActive) {
-                // Start "recording"
-                console.log('Mic activated - would start recording');
-                micButton.classList.add('active');
-                interviewTitle.textContent = 'You are Speaking';
-                interviewSubtitle.textContent = 'Speak your response clearly.';
-                instructionText.textContent = "Press the microphone button again when you're finished speaking";
-                
-                // Change waveform color for recording
-                document.querySelectorAll('.wave-bar').forEach(bar => {
-                    bar.style.backgroundColor = 'var(--success-color)';
-                });
-            } else {
-                // End "recording" and send response
-                console.log('Mic deactivated - sending response');
-                micButton.classList.remove('active');
-                interviewTitle.textContent = 'Processing Response';
-                interviewSubtitle.textContent = 'Sending your response...';
-                instructionText.textContent = 'Please wait...';
-                
-                // Reset waveform color
-                document.querySelectorAll('.wave-bar').forEach(bar => {
-                    bar.style.backgroundColor = '';
-                });
-                
-                // Simulate sending a response
-                socket.emit('user_message', {
-                    text: 'Voice response from user (simulated)'
-                });
-            }
-        });
-        
-        endButton.addEventListener('click', function() {
-            if (!interviewStarted || interviewEnded) return;
-            
-            if (confirm('Are you sure you want to end the interview?')) {
-                console.log('Ending interview early');
-                interviewEnded = true;
-                interviewTitle.textContent = 'Interview Ended';
-                interviewSubtitle.textContent = 'You ended the interview early.';
-                
-                // Create a simple report for incomplete interviews
-                showReportModal();
-                setTimeout(function() {
-                    modalLoading.style.display = 'none';
-                    modalContent.style.display = 'block';
+            // Function to find the ElevenLabs widget when it loads
+            function checkForElevenLabsWidget() {
+                const widget = document.querySelector('elevenlabs-convai');
+                if (widget && !elevenLabsWidget) {
+                    elevenLabsWidget = widget;
+                    console.log('ElevenLabs widget found');
+                    widgetLoaded = true;
                     
-                    performanceRating.textContent = 'Incomplete';
-                    strengthsText.textContent = 'The interview was ended early, so a complete assessment is not available.';
-                    improvementText.textContent = 'Try to complete the full interview next time to get comprehensive feedback.';
-                }, 2000);
+                    // Setup message listeners for the widget if possible
+                    setupWidgetListeners();
+                }
+                
+                if (!widgetLoaded) {
+                    setTimeout(checkForElevenLabsWidget, 1000);
+                }
             }
-        });
-        
-        modalClose.addEventListener('click', function() {
-            reportModal.classList.remove('active');
-            window.location.href = '/dashboard';
-        });
-        
-        // Helper functions
-        function showReportModal() {
-            reportModal.classList.add('active');
-            modalLoading.style.display = 'block';
-            modalContent.style.display = 'none';
-        }
-        
-        function simulateVoicePlayback() {
-            // Make the waveform active during "playback"
-            const waveBars = document.querySelectorAll('.wave-bar');
-            waveBars.forEach(bar => {
-                bar.style.backgroundColor = 'var(--info-color)';
-            });
             
-            // After "playback", return to normal
-            setTimeout(function() {
-                waveBars.forEach(bar => {
-                    bar.style.backgroundColor = '';
-                });
-            }, 3000); // Simulate 3 seconds of audio playback
-        }
-        
-        function fetchLatestReport() {
-            console.log('Fetching latest report');
-            fetch('/api/reports')
-                .then(response => response.json())
-                .then(reports => {
-                    console.log('Reports received:', reports);
-                    if (reports && reports.length > 0) {
-                        const latestReport = reports[0];
-                        modalLoading.style.display = 'none';
-                        modalContent.style.display = 'block';
-                        
-                        performanceRating.textContent = latestReport.content.overall || 'Good';
-                        strengthsText.textContent = latestReport.content.strengths || 'Clear communication';
-                        improvementText.textContent = latestReport.content.improvement || 'Be more concise with answers';
-                        
-                        viewReportButton.href = '/report/' + latestReport.id;
-                    } else {
-                        // Fallback for no reports
-                        console.log('No reports found, using fallback');
-                        modalLoading.style.display = 'none';
-                        modalContent.style.display = 'block';
-                        
-                        performanceRating.textContent = 'Pending';
-                        strengthsText.textContent = 'Your report will be available soon.';
-                        improvementText.textContent = 'Please check your dashboard shortly.';
+            // Start checking for the widget
+            checkForElevenLabsWidget();
+            
+            // Setup listeners for the widget to capture messages
+            function setupWidgetListeners() {
+                if (!elevenLabsWidget) return;
+                
+                // Try to access shadow DOM if possible
+                const shadowRoot = elevenLabsWidget.shadowRoot;
+                
+                // Listen for custom events from the widget
+                window.addEventListener('message', function(event) {
+                    // Try to capture messages from the widget
+                    if (event.data && typeof event.data === 'object') {
+                        if (event.data.type === 'agent_message' || event.data.source === 'elevenlabs') {
+                            // Agent is speaking, update UI
+                            if (event.data.text) {
+                                currentQuestion = event.data.text;
+                                updateQuestionText(currentQuestion);
+                            }
+                        }
                     }
-                })
-                .catch(error => {
-                    console.error('Error fetching reports:', error);
-                    modalLoading.style.display = 'none';
-                    modalContent.style.display = 'block';
-                    
-                    performanceRating.textContent = 'Error';
-                    strengthsText.textContent = 'There was a problem retrieving your report.';
-                    improvementText.textContent = 'Please check your dashboard later.';
                 });
-        }
-        
-        // Auto-dismiss flash messages
-        setTimeout(function() {
-            const flashMessages = document.querySelectorAll('.flash-message .alert');
-            flashMessages.forEach(function(message) {
-                const alert = bootstrap.Alert.getOrCreateInstance(message);
-                alert.close();
+                
+                // Add a mutation observer if possible to detect widget changes
+                try {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            // Look for added nodes that might contain messages
+                            mutation.addedNodes.forEach((node) => {
+                                if (node.textContent && node.textContent.length > 10) {
+                                    // This could be a message from the agent
+                                    const possibleQuestion = node.textContent.trim();
+                                    if (possibleQuestion !== currentQuestion && possibleQuestion.length > 20) {
+                                        currentQuestion = possibleQuestion;
+                                        updateQuestionText(currentQuestion);
+                                    }
+                                }
+                            });
+                        });
+                    });
+                    
+                    // Observe either the shadow DOM or the widget itself
+                    const targetNode = shadowRoot || elevenLabsWidget;
+                    observer.observe(targetNode, { childList: true, subtree: true });
+                } catch (error) {
+                    console.error('Error setting up mutation observer:', error);
+                }
+            }
+            
+            // Function to update the question text
+            function updateQuestionText(text) {
+                if (text && text.length > 10) {
+                    questionText.textContent = text;
+                    
+                    // Update UI state
+                    interviewTitle.textContent = 'AI Interviewer Question';
+                    interviewSubtitle.textContent = "Listen to the question, then respond.";
+                    instructionText.textContent = "Press the microphone button when you're ready to speak";
+                    
+                    // Simulate voice visualization effect
+                    simulateVoicePlayback();
+                }
+            }
+            
+            // Function to activate the widget and start the interview
+            function activateElevenLabsWidget() {
+                if (!widgetLoaded) {
+                    console.log('Widget not yet loaded, will retry');
+                    setTimeout(activateElevenLabsWidget, 1000);
+                    return;
+                }
+                
+                if (!elevenLabsInitialized) {
+                    try {
+                        console.log('Attempting to activate ElevenLabs widget');
+                        
+                        // Find all buttons in the widget and try to click the start button
+                        let startButtonFound = false;
+                        
+                        // Function to find and click elements recursively
+                        function findAndClickStartButton(element) {
+                            if (!element) return false;
+                            
+                            // Check if this element is a button
+                            if (element.tagName === 'BUTTON') {
+                                // Click any button that might start the conversation
+                                element.click();
+                                console.log('Clicked a button in the widget');
+                                startButtonFound = true;
+                                return true;
+                            }
+                            
+                            // Check shadow DOM if available
+                            if (element.shadowRoot) {
+                                const buttons = element.shadowRoot.querySelectorAll('button');
+                                for (const btn of buttons) {
+                                    btn.click();
+                                    console.log('Clicked button in shadow DOM');
+                                    startButtonFound = true;
+                                    return true;
+                                }
+                            }
+                            
+                            // Try to get all child elements and check them
+                            const children = element.children || [];
+                            for (let i = 0; i < children.length; i++) {
+                                if (findAndClickStartButton(children[i])) {
+                                    return true;
+                                }
+                            }
+                            
+                            return false;
+                        }
+                        
+                        // Try to find and click the start button
+                        findAndClickStartButton(elevenLabsWidget);
+                        
+                        // If no start button found, dispatch a custom event
+                        if (!startButtonFound) {
+                            // Try to dispatch a custom event to start the conversation
+                            elevenLabsWidget.dispatchEvent(new CustomEvent('start-conversation', {
+                                bubbles: true,
+                                composed: true
+                            }));
+                            
+                            console.log('Dispatched start-conversation event');
+                        }
+                        
+                        elevenLabsInitialized = true;
+                    } catch (error) {
+                        console.error('Error activating ElevenLabs widget:', error);
+                    }
+                }
+            }
+            
+            // State variables
+            let interviewStarted = false;
+            let interviewEnded = false;
+            let micActive = false;
+            let connectionSuccess = false;
+            let reconnectAttempts = 0;
+            const MAX_RECONNECT_ATTEMPTS = 3;
+            
+            // Create Socket.IO connection with options for better reliability
+            const socket = io({
+                reconnection: true,
+                reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 20000
             });
-        }, 5000);
-    });
-</script>
-  
+            
+            // Socket connection events
+            socket.on('connect', function() {
+                console.log('Socket connected');
+                connectionSuccess = true;
+                statusIndicator.className = 'status-indicator status-connected';
+                connectionStatusText.textContent = 'Connected';
+                
+                // Hide loader after brief delay
+                setTimeout(function() {
+                    loaderOverlay.style.opacity = '0';
+                    setTimeout(function() {
+                        loaderOverlay.style.display = 'none';
+                    }, 300);
+                    
+                    // Start the interview after connection
+                    socket.emit('start_interview');
+                    
+                    // Activate the ElevenLabs widget
+                    activateElevenLabsWidget();
+                }, 1500);
+            });
+            
+            socket.on('connect_error', function(error) {
+                console.error('Connection error:', error);
+                statusIndicator.className = 'status-indicator status-disconnected';
+                connectionStatusText.textContent = 'Connection Error';
+                
+                // Handle reconnection limit
+                reconnectAttempts++;
+                if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                    interviewTitle.textContent = 'Connection Issues';
+                    interviewSubtitle.textContent = 'Unable to connect to the interview server. Please try again later.';
+                    questionText.textContent = 'There was a problem connecting to the interview service. This might be due to network issues or high server load.';
+                    micButton.style.display = 'none';
+                }
+            });
+            
+            socket.on('disconnect', function() {
+                console.log('Socket disconnected');
+                statusIndicator.className = 'status-indicator status-disconnected';
+                connectionStatusText.textContent = 'Disconnected';
+                
+                if (!interviewEnded && connectionSuccess) {
+                    interviewTitle.textContent = 'Connection Lost';
+                    interviewSubtitle.textContent = 'Lost connection to the interview server.';
+                    questionText.textContent = 'The connection to the interviewer was lost. If this persists, please refresh the page.';
+                }
+            });
+            
+            // Interview events
+            socket.on('status', function(data) {
+                console.log('Status message:', data.message);
+            });
+            
+            socket.on('error', function(data) {
+                console.error('Interview error:', data.message);
+                interviewTitle.textContent = 'Error';
+                interviewSubtitle.textContent = 'There was an error during the interview.';
+                questionText.textContent = data.message || 'An unknown error occurred.';
+            });
+            
+            socket.on('interview_started', function(data) {
+                console.log('Interview started');
+                interviewStarted = true;
+                interviewTitle.textContent = 'Interview Started';
+                interviewSubtitle.textContent = 'The interviewer will ask you questions.';
+                questionText.textContent = data.message || 'The interview has started. You will hear questions shortly.';
+                
+                // Activate ElevenLabs widget if not already done
+                activateElevenLabsWidget();
+            });
+            
+            socket.on('interviewer_message', function(data) {
+                console.log('Received interviewer message:', data.text);
+                
+                // Update display
+                interviewTitle.textContent = 'AI Interviewer Question';
+                interviewSubtitle.textContent = "Listen to the question, then respond.";
+                questionText.textContent = data.text;
+                instructionText.textContent = "Press the microphone button when you're ready to speak";
+                
+                // Reset mic button state
+                micActive = false;
+                micButton.classList.remove('active');
+                
+                // Simulate voice playback
+                simulateVoicePlayback();
+                
+                // Store the current question
+                currentQuestion = data.text;
+            });
+            
+            socket.on('interview_completed', function(data) {
+                console.log('Interview completed');
+                interviewEnded = true;
+                interviewTitle.textContent = 'Interview Completed';
+                interviewSubtitle.textContent = 'Your interview has finished.';
+                showReportModal();
+                
+                // Get the report
+                setTimeout(function() {
+                    fetchLatestReport();
+                }, 2000);
+                
+                // End the ElevenLabs session if possible
+                try {
+                    // Find and click any end button in the widget
+                    if (elevenLabsWidget) {
+                        const endButtons = elevenLabsWidget.querySelectorAll('button');
+                        endButtons.forEach(button => {
+                            if (button.innerText.toLowerCase().includes('end') || 
+                                button.innerText.toLowerCase().includes('stop') ||
+                                button.getAttribute('aria-label')?.toLowerCase().includes('end')) {
+                                button.click();
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error ending ElevenLabs session:', error);
+                }
+            });
+            
+            // UI Event handlers
+            micButton.addEventListener('click', function() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                micActive = !micActive;
+                
+                if (micActive) {
+                    // Start recording - activate the ElevenLabs mic
+                    console.log('Mic activated');
+                    micButton.classList.add('active');
+                    interviewTitle.textContent = 'You are Speaking';
+                    interviewSubtitle.textContent = 'Speak your response clearly.';
+                    instructionText.textContent = "Press the microphone button again when you're finished speaking";
+                    
+                    // Change waveform color for recording
+                    document.querySelectorAll('.wave-bar').forEach(bar => {
+                        bar.style.backgroundColor = 'var(--success-color)';
+                    });
+                    
+                    // Activate the mic in the ElevenLabs widget
+                    if (elevenLabsWidget) {
+                        // Try to find the mic button in the widget structure
+                        try {
+                            // Function to find and click mic button recursively
+                            function findAndClickMicButton(element) {
+                                if (!element) return false;
+                                
+                                // Check if this might be a mic button
+                                if (element.tagName === 'BUTTON') {
+                                    // Look for a mic icon or label
+                                    const hasIcon = element.innerHTML.includes('mic') || 
+                                                   element.innerHTML.includes('microphone');
+                                    const hasLabel = element.getAttribute('aria-label')?.toLowerCase().includes('mic') ||
+                                                     element.getAttribute('title')?.toLowerCase().includes('mic');
+                                    
+                                    if (hasIcon || hasLabel) {
+                                        element.click();
+                                        console.log('Clicked mic button in widget');
+                                        return true;
+                                    }
+                                }
+                                
+                                // Check shadow DOM if available
+                                if (element.shadowRoot) {
+                                    const buttons = element.shadowRoot.querySelectorAll('button');
+                                    for (const btn of buttons) {
+                                        // Look for mic buttons in shadow DOM
+                                        const innerHTML = btn.innerHTML || '';
+                                        const ariaLabel = btn.getAttribute('aria-label') || '';
+                                        const title = btn.getAttribute('title') || '';
+                                        
+                                        if (innerHTML.includes('mic') || 
+                                            ariaLabel.toLowerCase().includes('mic') ||
+                                            title.toLowerCase().includes('mic')) {
+                                            btn.click();
+                                            console.log('Clicked mic button in shadow DOM');
+                                            return true;
+                                        }
+                                    }
+                                }
+                                
+                                // Try to get all child elements and check them
+                                const children = element.children || [];
+                                for (let i = 0; i < children.length; i++) {
+                                    if (findAndClickMicButton(children[i])) {
+                                        return true;
+                                    }
+                                }
+                                
+                                return false;
+                            }
+                            
+                            // Try to find and click the mic button
+                            const micActivated = findAndClickMicButton(elevenLabsWidget);
+                            
+                            // If no mic button found, dispatch a custom event
+                            if (!micActivated) {
+                                // Try to dispatch a custom event to start recording
+                                elevenLabsWidget.dispatchEvent(new CustomEvent('start-recording', {
+                                    bubbles: true,
+                                    composed: true
+                                }));
+                                
+                                console.log('Dispatched start-recording event');
+                            }
+                        } catch (error) {
+                            console.error('Error activating ElevenLabs mic:', error);
+                        }
+                    }
+                    
+                    // Also send a message through our own socket as fallback
+                    socket.emit('user_speaking', { active: true });
+                    
+                } else {
+                    // End recording
+                    console.log('Mic deactivated');
+                    micButton.classList.remove('active');
+                    interviewTitle.textContent = 'Processing Response';
+                    interviewSubtitle.textContent = 'Sending your response...';
+                    instructionText.textContent = 'Please wait...';
+                    
+                    // Reset waveform color
+                    document.querySelectorAll('.wave-bar').forEach(bar => {
+                        bar.style.backgroundColor = '';
+                    });
+                    
+                    // Stop recording in the ElevenLabs widget
+                    if (elevenLabsWidget) {
+                        // Try to find the stop button in the widget structure
+                        try {
+                            // Function to find and click stop button recursively
+                            function findAndClickStopButton(element) {
+                                if (!element) return false;
+                                
+                                // Check if this might be a stop button
+                                if (element.tagName === 'BUTTON') {
+                                    // Look for a stop icon or label
+                                    const hasIcon = element.innerHTML.includes('stop') || 
+                                                   element.innerHTML.includes('pause');
+                                    const hasLabel = element.getAttribute('aria-label')?.toLowerCase().includes('stop') ||
+                                                     element.getAttribute('title')?.toLowerCase().includes('stop');
+                                    
+                                    if (hasIcon || hasLabel) {
+                                        element.click();
+                                        console.log('Clicked stop button in widget');
+                                        return true;
+                                    }
+                                }
+                                
+                                // Check shadow DOM if available
+                                if (element.shadowRoot) {
+                                    const buttons = element.shadowRoot.querySelectorAll('button');
+                                    for (const btn of buttons) {
+                                        // Look for stop buttons in shadow DOM
+                                        const innerHTML = btn.innerHTML || '';
+                                        const ariaLabel = btn.getAttribute('aria-label') || '';
+                                        const title = btn.getAttribute('title') || '';
+                                        
+                                        if (innerHTML.includes('stop') || innerHTML.includes('pause') || 
+                                            ariaLabel.toLowerCase().includes('stop') ||
+                                            title.toLowerCase().includes('stop')) {
+                                            btn.click();
+                                            console.log('Clicked stop button in shadow DOM');
+                                            return true;
+                                        }
+                                    }
+                                }
+                                
+                                // Try to get all child elements and check them
+                                const children = element.children || [];
+                                for (let i = 0; i < children.length; i++) {
+                                    if (findAndClickStopButton(children[i])) {
+                                        return true;
+                                    }
+                                }
+                                
+                                return false;
+                            }
+                            
+                            // Try to find and click the stop button
+                            const stopActivated = findAndClickStopButton(elevenLabsWidget);
+                            
+                            // If no stop button found, dispatch a custom event
+                            if (!stopActivated) {
+                                // Try to dispatch a custom event to stop recording
+                                elevenLabsWidget.dispatchEvent(new CustomEvent('stop-recording', {
+                                    bubbles: true,
+                                    composed: true
+                                }));
+                                
+                                console.log('Dispatched stop-recording event');
+                            }
+                        } catch (error) {
+                            console.error('Error stopping ElevenLabs recording:', error);
+                        }
+                    }
+                    
+                    // Also send a message through our own socket as fallback
+                    socket.emit('user_message', {
+                        text: 'Voice response from user (processed through ElevenLabs)'
+                    });
+                    
+                    socket.emit('user_speaking', { active: false });
+                }
+            });
+            
+            endButton.addEventListener('click', function() {
+                if (!interviewStarted || interviewEnded) return;
+                
+                if (confirm('Are you sure you want to end the interview?')) {
+                    console.log('Ending interview early');
+                    interviewEnded = true;
+                    interviewTitle.textContent = 'Interview Ended';
+                    interviewSubtitle.textContent = 'You ended the interview early.';
+                    
+                    // End the ElevenLabs session if possible
+                    try {
+                        if (elevenLabsWidget) {
+                            const endButtons = elevenLabsWidget.querySelectorAll('button');
+                            endButtons.forEach(button => {
+                                if (button.innerText.toLowerCase().includes('end') || 
+                                    button.innerText.toLowerCase().includes('stop') ||
+                                    button.getAttribute('aria-label')?.toLowerCase().includes('end')) {
+                                    button.click();
+                                }
+                            });
+                            
+                            // Also try to dispatch an event
+                            elevenLabsWidget.dispatchEvent(new CustomEvent('end-conversation', {
+                                bubbles: true,
+                                composed: true
+                            }));
+                        }
+                    } catch (error) {
+                        console.error('Error ending ElevenLabs session:', error);
+                    }
+                    
+                    // Create a simple report for incomplete interviews
+                    showReportModal();
+                    setTimeout(function() {
+                        modalLoading.style.display = 'none';
+                        modalContent.style.display = 'block';
+                        
+                        performanceRating.textContent = 'Incomplete';
+                        strengthsText.textContent = 'The interview was ended early, so a complete assessment is not available.';
+                        improvementText.textContent = 'Try to complete the full interview next time to get comprehensive feedback.';
+                    }, 2000);
+                }
+            });
+            
+            modalClose.addEventListener('click', function() {
+                reportModal.classList.remove('active');
+                window.location.href = '/dashboard';
+            });
+            
+            // Helper functions
+            function showReportModal() {
+                reportModal.classList.add('active');
+                modalLoading.style.display = 'block';
+                modalContent.style.display = 'none';
+            }
+            
+            function simulateVoicePlayback() {
+                // Make the waveform active during "playback"
+                const waveBars = document.querySelectorAll('.wave-bar');
+                waveBars.forEach(bar => {
+                    bar.style.backgroundColor = 'var(--info-color)';
+                });
+                
+                // After "playback", return to normal
+                setTimeout(function() {
+                    waveBars.forEach(bar => {
+                        bar.style.backgroundColor = '';
+                    });
+                }, 3000); // Simulate 3 seconds of audio playback
+            }
+            
+            function fetchLatestReport() {
+                console.log('Fetching latest report');
+                fetch('/api/reports')
+                    .then(response => response.json())
+                    .then(reports => {
+                        console.log('Reports received:', reports);
+                        if (reports && reports.length > 0) {
+                            const latestReport = reports[0];
+                            modalLoading.style.display = 'none';
+                            modalContent.style.display = 'block';
+                            
+                            performanceRating.textContent = latestReport.content.overall || 'Good';
+                            strengthsText.textContent = latestReport.content.strengths || 'Clear communication';
+                            improvementText.textContent = latestReport.content.improvement || 'Be more concise with answers';
+                            
+                            viewReportButton.href = '/report/' + latestReport.id;
+                        } else {
+                            // Fallback for no reports
+                            console.log('No reports found, using fallback');
+                            modalLoading.style.display = 'none';
+                            modalContent.style.display = 'block';
+                            
+                            performanceRating.textContent = 'Pending';
+                            strengthsText.textContent = 'Your report will be available soon.';
+                            improvementText.textContent = 'Please check your dashboard shortly.';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching reports:', error);
+                        modalLoading.style.display = 'none';
+                        modalContent.style.display = 'block';
+                        
+                        performanceRating.textContent = 'Error';
+                        strengthsText.textContent = 'There was a problem retrieving your report.';
+                        improvementText.textContent = 'Please check your dashboard later.';
+                    });
+            }
+            
+            // Auto-dismiss flash messages
+            setTimeout(function() {
+                const flashMessages = document.querySelectorAll('.flash-message .alert');
+                flashMessages.forEach(function(message) {
+                    const alert = bootstrap.Alert.getOrCreateInstance(message);
+                    alert.close();
+                });
+            }, 5000);
+        });
+    </script>
 </body>
 </html>
