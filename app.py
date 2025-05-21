@@ -232,138 +232,113 @@ def handle_connect():
 def handle_disconnect():
     emit('status', {'message': 'Disconnected from interview server'})
 
+# Keep a reference to the WebSocket connection
+elevenlabs_ws = None
+elevenlabs_ws_loop = None
+
 @socketio.on('start_interview')
 def handle_start_interview():
+    global elevenlabs_ws, elevenlabs_ws_loop
+
     if current_user.credits <= 0:
         emit('error', {'message': 'Not enough credits'})
         return
-    
+
     # Start the interview process
     emit('interview_started', {'message': 'Interview started'})
-    
+
     try:
-        # Prepare headers for Eleven Labs API
-        headers = {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        
-        # Create the exact conversation initialization format required
+        conversation_id = f"conv_{secrets.token_hex(12)}"
+        session['conversation_id'] = conversation_id
+
+        # Prepare the initial metadata payload
         init_data = {
             "conversation_initiation_metadata_event": {
-                "conversation_id": "",
+                "conversation_id": conversation_id,
                 "agent_output_audio_format": "pcm_16000",
                 "user_input_audio_format": "pcm_16000"
             },
             "type": "conversation_initiation_metadata"
         }
+
+        uri = f"wss://api.elevenlabs.io/v1/convai/conversation?agent_id=agent_01jvjmatfbegaa4f88zkwdyd72"
+        headers = {
+            "Authorization": f"Bearer {ELEVENLABS_API_KEY}"
+        }
+
+        def run_loop():
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            loop = asyncio.get_event_loop()
+            global elevenlabs_ws_loop
+            elevenlabs_ws_loop = loop
+            loop.run_until_complete(start_ws(uri, headers, init_data))
         
-        # Store the conversation ID in session
-        session['conversation_id'] = init_data["conversation_initiation_metadata_event"]["conversation_id"]
-        
-        # Log the initialization data for debugging
-        app.logger.info(f"Initializing Eleven Labs conversation with data: {init_data}")
-        
-        # Send the request to Eleven Labs API
-        response = requests.post(
-            f"{ELEVENLABS_BASE_URL}/v1/convai/conversations", 
-            headers=headers,
-            json=init_data
-        )
-        
-        # Log the response for debugging
-        app.logger.info(f"Eleven Labs response status: {response.status_code}")
-        app.logger.info(f"Eleven Labs response text: {response.text}")
-        
-        # Process the response
-        if response.status_code == 200:
-            # Send initial message from the interviewer
-            emit('interviewer_message', {
-                'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
-            })
-        else:
-            # If we can't connect to Eleven Labs, use a fallback mode
-            app.logger.error(f"Error initializing Eleven Labs conversation: {response.text}")
-            
-            # Keep using the same conversation ID for future requests
-            emit('interviewer_message', {
-                'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
-            })
-            
-    except Exception as e:
-        app.logger.error(f"Error starting interview: {str(e)}")
-        # Use fallback mode but maintain the same conversation ID format
-        session['conversation_id'] = f"conv_{secrets.token_hex(12)}"
+        threading.Thread(target=run_loop, daemon=True).start()
+
         emit('interviewer_message', {
             'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
         })
-            
+
+    except Exception as e:
+        app.logger.error(f"Error starting interview: {str(e)}")
+        emit('interviewer_message', {
+            'text': 'Hello! I\'m your AI interviewer. Let\'s start with you telling me a bit about yourself and your background.'
+        })
+
+
+async def start_ws(uri, headers, init_data):
+    global elevenlabs_ws
+
+    async with websockets.connect(uri, extra_headers=headers) as ws:
+        elevenlabs_ws = ws
+        await ws.send(json.dumps(init_data))
+
+        async for message in ws:
+            try:
+                response = json.loads(message)
+                if 'text' in response:
+                    socketio.emit('interviewer_message', {
+                        'text': response['text'],
+                        'audio_url': response.get('audio_url')
+                    })
+            except Exception as e:
+                app.logger.error(f"WebSocket message handling error: {str(e)}")
+
 
 @socketio.on('user_message')
 def handle_user_message(data):
+    global elevenlabs_ws, elevenlabs_ws_loop
+
     if not current_user.is_authenticated:
         emit('error', {'message': 'Authentication required'})
         return
-    
-    # For a voice interview, this message would typically contain audio data
-    # or a reference to recorded audio. In this implementation, we're sending it
-    # as text to Eleven Labs for simplicity.
-    
+
     user_text = data.get('text', '')
     conversation_id = session.get('conversation_id')
-    
-    if not conversation_id:
+
+    if not conversation_id or not elevenlabs_ws:
         emit('error', {'message': 'Conversation not initialized. Please restart the interview.'})
         return
-    
-    # Connect to Eleven Labs API
+
     try:
-        headers = {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        
-        # Send user message to Eleven Labs - in a real voice implementation,
-        # this would either send the audio file or the transcript of the user's speech
         message_data = {
-            'text': user_text,
-            'conversation_id': conversation_id,
-            'user_id': str(current_user.id),
-            'is_voice': True,  # Indicate this is a voice conversation
+            "type": "user_utterance",
+            "text": user_text,
+            "user_id": str(current_user.id),
+            "conversation_id": conversation_id
         }
-        
-        # Make the request to Eleven Labs
-        response = requests.post(
-            f"{ELEVENLABS_BASE_URL}/v1/convai/messages", 
-            headers=headers,
-            json=message_data
-        )
-        
-        if response.status_code == 200:
-            message_response = response.json()
-            ai_response = message_response.get('text', 'I did not understand that. Could you please rephrase?')
-            audio_url = message_response.get('audio_url')  # In a real implementation, Eleven Labs would return an audio URL
-            
-            # Check if interview is complete
-            if message_response.get('metadata', {}).get('interview_complete', False):
-                emit('interviewer_message', {
-                    'text': ai_response,
-                    'audio_url': audio_url
-                })
-                emit('interview_completed', {'message': 'Interview completed'})
-            else:
-                emit('interviewer_message', {
-                    'text': ai_response,
-                    'audio_url': audio_url
-                })
-                
-        else:
-            app.logger.error(f"Error sending message to Eleven Labs: {response.text}")
-            emit('error', {'message': 'Error communicating with interview service. Please try again.'})
-            
+
+        def send_ws_message():
+            asyncio.run_coroutine_threadsafe(
+                elevenlabs_ws.send(json.dumps(message_data)),
+                elevenlabs_ws_loop
+            )
+
+        send_ws_message()
+
     except Exception as e:
-        app.logger.error(f"Error sending message: {str(e)}")
-        emit('error', {'message': f'Error communicating with interview service: {str(e)}'})
+        app.logger.error(f"Error sending user message: {str(e)}")
+        emit('error', {'message': 'Failed to send message to AI interviewer.'})
 
 # Endpoint to receive transcript and summary from Eleven Labs
 @app.route('/api/interview/callback', methods=['POST'])
