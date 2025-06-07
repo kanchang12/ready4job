@@ -117,43 +117,12 @@ def deduct_credit(user_id):
         print(f"Error deducting credit: {e}")
         return False
 
-@app.route('/test/add_credits', methods=['POST'])
-def test_add_credits():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    try:
-        data = request.get_json()
-        credits_to_add = data.get('credits', 10)
-        
-        if add_credits(session['user_id'], credits_to_add):
-            return jsonify({
-                'message': f'Added {credits_to_add} credits successfully',
-                'new_balance': get_user_credits(session['user_id'])
-            }), 200
-        else:
-            return jsonify({'error': 'Failed to add credits'}), 500
-            
-    except Exception as e:
-        print(f"Error adding test credits: {e}")
-        return jsonify({'error': 'Failed to add credits'}), 500
-
 def create_interview_record(user_id, title, cv_text, job_role=None):
     """Create interview record in database with 'started' status"""
     try:
         if not supabase:
             return str(uuid.uuid4())
         
-        # First, try to get the table schema to check if job_role column exists
-        try:
-            # Test query to check if job_role column exists
-            test_result = supabase.table('interviews').select('job_role').limit(1).execute()
-            has_job_role_column = True
-        except:
-            has_job_role_column = False
-            print("Warning: job_role column not found in interviews table")
-        
-        # Create interview data based on available columns
         interview_data = {
             'user_id': user_id,
             'title': title,
@@ -163,8 +132,7 @@ def create_interview_record(user_id, title, cv_text, job_role=None):
             'created_at': datetime.now().isoformat()
         }
         
-        # Only add job_role if the column exists
-        if has_job_role_column and job_role:
+        if job_role:
             interview_data['job_role'] = job_role
         
         result = supabase.table('interviews').insert(interview_data).execute()
@@ -172,172 +140,6 @@ def create_interview_record(user_id, title, cv_text, job_role=None):
     except Exception as e:
         print(f"Error creating interview record: {e}")
         return None
-
-def update_interview_status(interview_id, status, conversation_id=None, transcript=None):
-    """Update interview status and add conversation data"""
-    try:
-        if not supabase:
-            return True
-            
-        update_data = {
-            'status': status,
-            'updated_at': datetime.now().isoformat()
-        }
-        
-        if conversation_id:
-            update_data['conversation_id'] = conversation_id
-            
-        if transcript:
-            update_data['transcript'] = transcript
-            
-        if status == 'completed':
-            update_data['completed_at'] = datetime.now().isoformat()
-        
-        result = supabase.table('interviews').update(update_data).eq('id', interview_id).execute()
-        return bool(result.data)
-    except Exception as e:
-        print(f"Error updating interview status: {e}")
-        return False
-
-# Updated function to create ElevenLabs conversation with better error handling
-def create_elevenlabs_conversation(cv_text, job_role=None):
-    """Create a conversation with ElevenLabs using direct API call"""
-    try:
-        if not ELEVENLABS_API_KEY or not ELEVENLABS_AGENT_ID:
-            print("ElevenLabs credentials not configured")
-            return f"demo_{uuid.uuid4().hex[:8]}"  # Return demo ID
-            
-        headers = {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        
-        # Create the context for the conversation
-        context = f"""You are an experienced professional interviewer conducting a job interview.
-
-CANDIDATE'S CV:
-{cv_text[:1500]}
-
-JOB ROLE: {job_role if job_role else "Based on CV background"}
-
-Conduct a natural, professional interview:
-1. Greet the candidate and ask them to introduce themselves
-2. Ask questions based on their CV experience and projects
-3. Ask technical questions relevant to their field
-4. Use their name naturally during conversation
-5. Keep interview 10-15 minutes
-6. End by asking if they have questions
-
-Be conversational, professional, and focus on their actual experience."""
-
-        payload = {
-            'agent_id': ELEVENLABS_AGENT_ID,
-            'context': context
-        }
-        
-        print(f"Creating ElevenLabs conversation with payload: {payload}")
-        
-        response = requests.post(
-            'https://api.elevenlabs.io/v1/convai/conversations',
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
-        
-        print(f"ElevenLabs response: {response.status_code} - {response.text}")
-        
-        if response.status_code == 201:
-            conversation_data = response.json()
-            conversation_id = conversation_data.get('conversation_id')
-            print(f"Created conversation: {conversation_id}")
-            return conversation_id
-        else:
-            print(f"ElevenLabs API error: {response.status_code} - {response.text}")
-            return f"demo_{uuid.uuid4().hex[:8]}"  # Fallback to demo
-            
-    except Exception as e:
-        print(f"Error creating ElevenLabs conversation: {e}")
-        return f"demo_{uuid.uuid4().hex[:8]}"  # Fallback to demo
-
-@app.route('/test_elevenlabs', methods=['POST'])
-def test_elevenlabs():
-    """Test ElevenLabs API connection"""
-    try:
-        if not ELEVENLABS_API_KEY or not ELEVENLABS_AGENT_ID:
-            return jsonify({
-                'error': 'ElevenLabs not configured',
-                'api_key_set': bool(ELEVENLABS_API_KEY),
-                'agent_id_set': bool(ELEVENLABS_AGENT_ID)
-            }), 400
-        
-        headers = {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        
-        # Test with simple conversation
-        payload = {
-            'agent_id': ELEVENLABS_AGENT_ID,
-            'context': 'You are a professional interviewer. Say hello and introduce yourself.'
-        }
-        
-        response = requests.post(
-            'https://api.elevenlabs.io/v1/convai/conversations',
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
-        
-        if response.status_code == 201:
-            data = response.json()
-            return jsonify({
-                'success': True,
-                'conversation_id': data.get('conversation_id'),
-                'message': 'ElevenLabs connection successful'
-            }), 200
-        else:
-            return jsonify({
-                'error': f'ElevenLabs API error: {response.status_code}',
-                'response': response.text
-            }), 400
-            
-    except Exception as e:
-        return jsonify({
-            'error': f'Connection failed: {str(e)}'
-        }), 500
-
-
-
-# Enhanced function to get conversation transcript
-def get_conversation_transcript(conversation_id):
-    """Get transcript from ElevenLabs conversation with better error handling"""
-    try:
-        if not ELEVENLABS_API_KEY:
-            return []
-            
-        headers = {
-            'xi-api-key': ELEVENLABS_API_KEY
-        }
-        
-        response = requests.get(
-            f'https://api.elevenlabs.io/v1/convai/conversations/{conversation_id}',
-            headers=headers,
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            return data.get('transcript', [])
-        else:
-            print(f"Error getting transcript: {response.status_code} - {response.text}")
-            return []
-            
-    except requests.exceptions.RequestException as e:
-        print(f"Network error getting transcript: {e}")
-        return []
-    except Exception as e:
-        print(f"Error getting conversation transcript: {e}")
-        return []
 
 def create_purchase_record(user_id, amount, credits_purchased, transaction_id=None):
     """Create purchase record in database"""
@@ -361,51 +163,11 @@ def create_purchase_record(user_id, amount, credits_purchased, transaction_id=No
         print(f"Error creating purchase record: {e}")
         return None
 
+# ROUTES
+
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
-
-
-webhook_data = []
-
-@app.route('/webhook/elevenlabs', methods=['POST'])
-def elevenlabs_webhook():
-    try:
-        data = request.get_json()
-        
-        # Store with timestamp
-        webhook_data.append({
-            'timestamp': datetime.now().isoformat(),
-            'data': data
-        })
-        
-        # Keep only last 50
-        if len(webhook_data) > 50:
-            webhook_data.pop(0)
-        
-        return jsonify({'status': 'received'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Update your review route to include webhook data
-@app.route('/review/<interview_id>')
-def review(interview_id):
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-    
-    user_id = session['user_id']
-    try:
-        if supabase:
-            interview = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
-            if interview.data and len(interview.data) > 0:
-                return render_template('review.html', 
-                                     interview=interview.data[0],
-                                     webhook_data=webhook_data)  # Pass webhook data
-        return redirect(url_for('history'))
-    except Exception as e:
-        return redirect(url_for('history'))
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -458,50 +220,6 @@ def register():
     except Exception as e:
         print(f"Registration error: {e}")
         return jsonify({'error': str(e)}), 500
-
-# Add route to manually end conversation
-@app.route('/force_end_conversation', methods=['POST'])
-def force_end_conversation():
-    """Force end a conversation and update status"""
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    try:
-        data = request.get_json()
-        interview_id = data.get('interview_id')
-        
-        if not interview_id:
-            return jsonify({'error': 'Interview ID required'}), 400
-        
-        user_id = session['user_id']
-        
-        # Update interview status to completed
-        if supabase:
-            # First verify interview belongs to user
-            interview_check = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
-            if not interview_check.data:
-                return jsonify({'error': 'Interview not found'}), 404
-            
-            # Update to completed
-            result = supabase.table('interviews').update({
-                'status': 'completed',
-                'completed_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat()
-            }).eq('id', interview_id).eq('user_id', user_id).execute()
-            
-            if result.data:
-                return jsonify({
-                    'message': 'Interview marked as completed',
-                    'interview_id': interview_id
-                }), 200
-            else:
-                return jsonify({'error': 'Failed to update interview'}), 500
-        else:
-            return jsonify({'error': 'Database not configured'}), 500
-            
-    except Exception as e:
-        print(f"Error force ending interview: {e}")
-        return jsonify({'error': 'Failed to end interview'}), 500
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -559,7 +277,6 @@ def dashboard():
     user_id = session['user_id']
     
     try:
-        # Get fresh data
         credit_result = supabase.table('user_credits').select('credits').eq('user_id', user_id).execute()
         credits = credit_result.data[0]['credits'] if credit_result.data else 0
         
@@ -587,10 +304,10 @@ def interview():
     if 'user_id' not in session:
         return redirect(url_for('index'))
     credits = get_user_credits(session['user_id'])
-    # Pass ElevenLabs config to template
     return render_template('interview.html', 
                          credits=credits, 
-                         config={'ELEVENLABS_AGENT_ID': ELEVENLABS_AGENT_ID})
+                         config={'ELEVENLABS_AGENT_ID': ELEVENLABS_AGENT_ID,
+                                'ELEVENLABS_API_KEY': ELEVENLABS_API_KEY})
 
 @app.route('/start_interview', methods=['POST'])
 def start_interview():
@@ -623,13 +340,11 @@ def start_interview():
             os.remove(file_path)
             return jsonify({'error': 'Could not extract text from PDF'}), 400
         
-        # Create interview record with 'started' status (only pass job_role if it's not empty)
         interview_id = create_interview_record(user_id, title, cv_text, job_role if job_role else None)
         if not interview_id:
             os.remove(file_path)
             return jsonify({'error': 'Failed to create interview record'}), 500
         
-        # Deduct credit only after successful interview creation
         if not deduct_credit(user_id):
             os.remove(file_path)
             return jsonify({'error': 'Failed to deduct credit'}), 500
@@ -663,7 +378,6 @@ def create_conversation():
         if not interview_id:
             return jsonify({'error': 'Interview ID required'}), 400
         
-        # Simple update - just mark as in progress
         user_id = session['user_id']
         if supabase:
             try:
@@ -676,7 +390,6 @@ def create_conversation():
                 print(f"Updated interview status: {result}")
             except Exception as e:
                 print(f"Database update error: {e}")
-                # Continue anyway
         
         return jsonify({
             'message': 'Voice interview started successfully',
@@ -688,7 +401,6 @@ def create_conversation():
     except Exception as e:
         print(f"Error creating conversation: {e}")
         return jsonify({'error': 'Failed to start voice interview'}), 500
-
 
 @app.route('/end_interview', methods=['POST'])
 def end_interview():
@@ -704,7 +416,6 @@ def end_interview():
         if not interview_id:
             return jsonify({'error': 'Interview ID required'}), 400
         
-        # Simple update - just mark as completed
         user_id = session['user_id']
         if supabase:
             try:
@@ -717,7 +428,6 @@ def end_interview():
                 print(f"Interview completed: {result}")
             except Exception as e:
                 print(f"Database update error: {e}")
-                # Continue anyway
         
         return jsonify({
             'message': 'Interview ended successfully',
@@ -726,103 +436,8 @@ def end_interview():
         
     except Exception as e:
         print(f"Error ending interview: {e}")
-        return jsonify({'error': 'Failed to end interview'}), 500# Add/Update these routes in your app.py to fix "Method Not Allowed" errors
-
-@app.route('/create_conversation', methods=['POST'])
-def create_conversation():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    try:
-        data = request.get_json()
-        interview_id = data.get('interview_id')
-        cv_text = data.get('cv_text', '')
-        job_role = data.get('job_role', '')
-        conversation_id = data.get('conversation_id')  # Get from frontend
-        
-        print(f"Creating conversation for interview: {interview_id}, conversation: {conversation_id}")
-        
-        if not interview_id:
-            return jsonify({'error': 'Interview ID required'}), 400
-        
-        # Verify interview belongs to user
-        user_id = session['user_id']
-        if supabase:
-            interview_check = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
-            if not interview_check.data:
-                return jsonify({'error': 'Interview not found'}), 404
-        
-        # Update interview status with conversation ID
-        if conversation_id:
-            update_interview_status(interview_id, 'in_progress', conversation_id)
-            
-            return jsonify({
-                'message': 'Voice interview started successfully',
-                'conversation_id': conversation_id,
-                'interview_id': interview_id,
-                'type': 'elevenlabs'
-            }), 200
-        else:
-            return jsonify({'error': 'No conversation ID provided'}), 400
-        
-    except Exception as e:
-        print(f"Error creating conversation: {e}")
-        return jsonify({'error': 'Failed to start voice interview'}), 500
-
-
-@app.route('/end_interview', methods=['POST'])
-def end_interview():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    try:
-        data = request.get_json()
-        conversation_id = data.get('conversation_id')
-        interview_id = data.get('interview_id')
-        transcript = data.get('transcript', [])
-        
-        print(f"Ending interview: {interview_id}, conversation: {conversation_id}")
-        
-        if not conversation_id or not interview_id:
-            return jsonify({'error': 'Conversation ID and Interview ID required'}), 400
-        
-        # Verify interview belongs to user
-        user_id = session['user_id']
-        if supabase:
-            interview_check = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
-            if not interview_check.data:
-                return jsonify({'error': 'Interview not found'}), 404
-        
-        # Update interview status to completed with transcript
-        update_data = {
-            'status': 'completed',
-            'completed_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        }
-        
-        if transcript:
-            update_data['transcript'] = transcript
-            
-        if supabase:
-            result = supabase.table('interviews').update(update_data).eq('id', interview_id).eq('user_id', user_id).execute()
-            
-            if result.data:
-                return jsonify({
-                    'message': 'Interview ended successfully',
-                    'transcript_length': len(transcript),
-                    'status': 'completed'
-                }), 200
-            else:
-                return jsonify({'error': 'Failed to update interview status'}), 500
-        else:
-            return jsonify({'message': 'Interview ended (no database)'}), 200
-        
-    except Exception as e:
-        print(f"Error ending interview: {e}")
         return jsonify({'error': 'Failed to end interview'}), 500
 
-
-# Also make sure you have this route for getting credits
 @app.route('/get_credits', methods=['GET'])
 def get_credits():
     if 'user_id' not in session:
@@ -835,8 +450,6 @@ def get_credits():
         print(f"Error getting credits: {e}")
         return jsonify({'error': 'Failed to get credits'}), 500
 
-# Replace the create_order route in your app.py
-
 @app.route('/create_order', methods=['POST'])
 def create_razorpay_order():
     if 'user_id' not in session:
@@ -847,9 +460,9 @@ def create_razorpay_order():
         credits_package = data.get('credits')
         
         packages = {
-            10: {'amount': 9900, 'credits': 10},   # ₹99
-            25: {'amount': 19900, 'credits': 25},  # ₹199  
-            50: {'amount': 34900, 'credits': 50}   # ₹349
+            10: {'amount': 9900, 'credits': 10},
+            25: {'amount': 19900, 'credits': 25},
+            50: {'amount': 34900, 'credits': 50}
         }
         
         if credits_package not in packages:
@@ -857,10 +470,7 @@ def create_razorpay_order():
         
         package = packages[credits_package]
         
-        # Check if Razorpay is configured
         if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
-            print("Razorpay not configured - using demo mode")
-            # Demo mode - simulate successful order
             demo_order_id = f"demo_order_{int(datetime.now().timestamp())}"
             return jsonify({
                 'order_id': demo_order_id,
@@ -874,13 +484,12 @@ def create_razorpay_order():
         if not razorpay_client:
             return jsonify({'error': 'Payment system initialization failed'}), 500
         
-        # Create short receipt (max 40 chars)
         timestamp = int(datetime.now().timestamp())
-        user_short_id = session['user_id'][:8]  # First 8 chars of user ID
-        receipt = f"ord_{user_short_id}_{timestamp}"[:40]  # Ensure max 40 chars
+        user_short_id = session['user_id'][:8]
+        receipt = f"ord_{user_short_id}_{timestamp}"[:40]
         
         order_data = {
-            'amount': package['amount'],  # Amount in paise
+            'amount': package['amount'],
             'currency': 'INR',
             'receipt': receipt,
             'notes': {
@@ -889,14 +498,11 @@ def create_razorpay_order():
             }
         }
         
-        print(f"Creating Razorpay order: {order_data}")
         order = razorpay_client.order.create(data=order_data)
-        print(f"Razorpay order created: {order}")
         
-        # Create purchase record
         purchase_id = create_purchase_record(
             session['user_id'], 
-            package['amount'] / 100,  # Convert paise to rupees
+            package['amount'] / 100,
             package['credits'],
             order['id']
         )
@@ -913,10 +519,8 @@ def create_razorpay_order():
         print(f"Error creating Razorpay order: {e}")
         return jsonify({'error': f'Failed to create order: {str(e)}'}), 500
 
-        
 @app.route('/verify_payment', methods=['POST'])
 def verify_payment():
-    """Verify Razorpay payment and add credits to user account"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
@@ -926,12 +530,8 @@ def verify_payment():
         razorpay_payment_id = data.get('razorpay_payment_id') 
         razorpay_signature = data.get('razorpay_signature')
         
-        print(f"Verifying payment: {razorpay_payment_id}")
-        
-        # Handle demo mode
         if razorpay_order_id and razorpay_order_id.startswith('demo_order_'):
-            # For demo mode, determine credits from order_id or default
-            credits_to_add = 10  # Default demo credits
+            credits_to_add = 10
             
             if add_credits(session['user_id'], credits_to_add):
                 return jsonify({
@@ -943,15 +543,12 @@ def verify_payment():
             else:
                 return jsonify({'error': 'Failed to add credits in demo mode'}), 500
         
-        # Validate required fields for real payment
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return jsonify({'error': 'Missing payment data'}), 400
         
-        # Check if Razorpay is configured
         if not RAZORPAY_KEY_SECRET:
             return jsonify({'error': 'Payment verification not configured'}), 500
         
-        # Verify signature
         try:
             generated_signature = hmac.new(
                 RAZORPAY_KEY_SECRET.encode('utf-8'),
@@ -960,24 +557,17 @@ def verify_payment():
             ).hexdigest()
             
             if generated_signature != razorpay_signature:
-                print(f"Signature mismatch: {generated_signature} != {razorpay_signature}")
                 return jsonify({'error': 'Invalid payment signature'}), 400
                 
         except Exception as e:
-            print(f"Signature verification error: {e}")
             return jsonify({'error': 'Payment verification failed'}), 500
         
-        # Fetch order details from Razorpay
         if razorpay_client:
             try:
                 order = razorpay_client.order.fetch(razorpay_order_id)
                 credits_to_add = int(order.get('notes', {}).get('credits', 10))
                 
-                print(f"Order verified. Adding {credits_to_add} credits to user {session['user_id']}")
-                
-                # Add credits to user account
                 if add_credits(session['user_id'], credits_to_add):
-                    # Update purchase record to completed
                     try:
                         if supabase:
                             supabase.table('purchases').update({
@@ -997,13 +587,11 @@ def verify_payment():
                     return jsonify({'error': 'Failed to add credits to account'}), 500
                     
             except Exception as e:
-                print(f"Error fetching Razorpay order: {e}")
                 return jsonify({'error': 'Failed to verify payment with Razorpay'}), 500
         else:
             return jsonify({'error': 'Payment system not configured'}), 500
             
     except Exception as e:
-        print(f"Error in payment verification: {e}")
         return jsonify({'error': 'Payment verification failed'}), 500
 
 @app.route('/history')
@@ -1023,7 +611,6 @@ def history():
         print(f"Error getting interview history: {e}")
         return render_template('history.html', interviews=[])
 
-
 @app.route('/delete_interview/<interview_id>', methods=['DELETE'])
 def delete_interview(interview_id):
     if 'user_id' not in session:
@@ -1032,12 +619,10 @@ def delete_interview(interview_id):
     user_id = session['user_id']
     try:
         if supabase:
-            # Verify interview belongs to user
             interview_check = supabase.table('interviews').select('id').eq('id', interview_id).eq('user_id', user_id).execute()
             if not interview_check.data:
                 return jsonify({'error': 'Interview not found'}), 404
             
-            # Delete the interview
             result = supabase.table('interviews').delete().eq('id', interview_id).eq('user_id', user_id).execute()
             if result.data:
                 return jsonify({'message': 'Interview deleted successfully'}), 200
@@ -1048,6 +633,27 @@ def delete_interview(interview_id):
     except Exception as e:
         print(f"Error deleting interview: {e}")
         return jsonify({'error': 'Failed to delete interview'}), 500
+
+@app.route('/test/add_credits', methods=['POST'])
+def test_add_credits():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        credits_to_add = data.get('credits', 10)
+        
+        if add_credits(session['user_id'], credits_to_add):
+            return jsonify({
+                'message': f'Added {credits_to_add} credits successfully',
+                'new_balance': get_user_credits(session['user_id'])
+            }), 200
+        else:
+            return jsonify({'error': 'Failed to add credits'}), 500
+            
+    except Exception as e:
+        print(f"Error adding test credits: {e}")
+        return jsonify({'error': 'Failed to add credits'}), 500
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
