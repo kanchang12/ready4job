@@ -8,73 +8,164 @@
     .history-main {
         padding-top: 100px;
         min-height: 100vh;
-        background: #f8fafc;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+    }
+
+    .history-main::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="a" cx="50%" cy="50%"><stop offset="0%" stop-color="%23ffffff" stop-opacity="0.1"/><stop offset="100%" stop-color="%23ffffff" stop-opacity="0"/></radialGradient></defs><circle cx="50%" cy="50%" r="50%" fill="url(%23a)"/></svg>') center/cover;
+        opacity: 0.1;
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
     }
 
     .history-header {
         text-align: center;
-        margin-bottom: 3rem;
+        margin-bottom: 4rem;
+        color: white;
     }
 
     .history-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1e293b;
+        font-size: 3rem;
+        font-weight: 800;
         margin-bottom: 1rem;
+        text-shadow: 0 2px 20px rgba(0,0,0,0.3);
     }
 
     .history-header p {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
+        opacity: 0.9;
+        text-shadow: 0 1px 10px rgba(0,0,0,0.2);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e40af;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
         color: #64748b;
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
     }
 
     .history-content {
-        max-width: 1000px;
-        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 3rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 0.5rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        flex-wrap: wrap;
+    }
+
+    .filter-tab {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .filter-tab.active {
+        background: white;
+        color: #1e40af;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .interview-grid {
         display: grid;
         gap: 1.5rem;
-        margin-bottom: 2rem;
     }
 
     .interview-card {
         background: white;
-        border-radius: 12px;
+        border-radius: 16px;
         padding: 2rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         border: 1px solid #e2e8f0;
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .interview-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6, #10b981);
     }
 
     .interview-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     }
 
     .interview-header {
         display: flex;
-        justify-content: between;
+        justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
         gap: 1rem;
     }
 
-    .interview-info {
-        flex: 1;
-    }
-
-    .interview-title {
-        font-size: 1.25rem;
-        font-weight: 600;
+    .interview-info h3 {
+        font-size: 1.4rem;
+        font-weight: 700;
         color: #1e293b;
         margin-bottom: 0.5rem;
+        line-height: 1.3;
     }
 
     .interview-meta {
         display: flex;
-        gap: 1rem;
+        gap: 1.5rem;
         flex-wrap: wrap;
         margin-bottom: 1rem;
     }
@@ -85,114 +176,195 @@
         gap: 0.5rem;
         font-size: 0.9rem;
         color: #64748b;
+        padding: 0.5rem 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
     }
 
     .meta-item i {
-        font-size: 0.8rem;
+        color: #3b82f6;
     }
 
     .status-badge {
-        padding: 0.25rem 0.75rem;
+        padding: 0.5rem 1rem;
         border-radius: 20px;
         font-size: 0.8rem;
-        font-weight: 500;
+        font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .status-completed {
-        background: #dcfce7;
+        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
         color: #166534;
+        border: 1px solid #22c55e;
     }
 
     .status-in-progress {
-        background: #fef3c7;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
         color: #92400e;
+        border: 1px solid #f59e0b;
     }
 
     .status-started {
-        background: #dbeafe;
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
         color: #1e40af;
+        border: 1px solid #3b82f6;
+    }
+
+    .interview-preview {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+        color: #64748b;
+        border-left: 4px solid #3b82f6;
     }
 
     .interview-actions {
         display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
     }
 
-    .btn-small {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-        border-radius: 6px;
-        text-decoration: none;
-        transition: all 0.3s ease;
+    .action-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
         border: none;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        font-size: 0.9rem;
     }
 
     .btn-view {
-        background: #3b82f6;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
         color: white;
     }
 
     .btn-view:hover {
-        background: #2563eb;
+        transform: scale(1.05);
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
         color: white;
     }
 
     .btn-delete {
-        background: #ef4444;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
         color: white;
     }
 
     .btn-delete:hover {
-        background: #dc2626;
+        transform: scale(1.05);
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-disabled {
+        background: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
     }
 
     .empty-state {
         text-align: center;
         padding: 4rem 2rem;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
     .empty-state i {
-        font-size: 4rem;
+        font-size: 5rem;
         color: #cbd5e1;
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
     }
 
     .empty-state h3 {
-        font-size: 1.5rem;
+        font-size: 2rem;
+        font-weight: 700;
         color: #475569;
         margin-bottom: 1rem;
     }
 
     .empty-state p {
+        font-size: 1.1rem;
         color: #64748b;
         margin-bottom: 2rem;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
-    .debug-info {
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        font-family: monospace;
-        font-size: 0.9rem;
+    .cta-button {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.3s ease;
     }
 
-    .debug-info pre {
-        margin: 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
+    .cta-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        color: white;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 2rem;
+        background: rgba(255, 255, 255, 0.9);
+        color: #1e40af;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 3rem;
+    }
+
+    .back-button:hover {
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        color: #1e40af;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
     }
 
     @media (max-width: 768px) {
+        .history-header h1 {
+            font-size: 2rem;
+        }
+
+        .history-content {
+            margin: 0 1rem;
+            padding: 2rem;
+        }
+
         .interview-header {
             flex-direction: column;
+            gap: 1rem;
         }
 
         .interview-meta {
@@ -203,6 +375,15 @@
         .interview-actions {
             flex-direction: column;
         }
+
+        .filter-tabs {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
@@ -211,32 +392,49 @@
 <main class="history-main">
     <div class="container">
         <div class="history-header">
-            <h1>Interview History</h1>
-            <p>View and manage your past interview sessions</p>
+            <h1>🎯 Interview History</h1>
+            <p>Track your progress and review your interview journey</p>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ interviews|length if interviews else 0 }}</div>
+                <div class="stat-label">Total Interviews</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ interviews|selectattr("status", "equalto", "completed")|list|length if interviews else 0 }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ interviews|selectattr("status", "equalto", "in_progress")|list|length if interviews else 0 }}</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ ((interviews|selectattr("status", "equalto", "completed")|list|length / interviews|length) * 100)|round|int if interviews and interviews|length > 0 else 0 }}%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
         </div>
 
         <div class="history-content">
-            <!-- Debug Information -->
-            <div class="debug-info">
-                <strong>Debug Info:</strong>
-                <pre>User ID: {{ session.get('user_id', 'Not found') }}
-Database Connection: {{ 'Connected' if supabase_connected else 'Not connected' }}
-Total Interviews Found: {{ interviews|length if interviews else 0 }}
-{% if interviews %}
-First Interview Sample: {{ interviews[0] if interviews else 'None' }}
-{% endif %}</pre>
-            </div>
-
             {% if interviews and interviews|length > 0 %}
-                <div class="interview-grid">
+                <!-- Filter Tabs -->
+                <div class="filter-tabs">
+                    <button class="filter-tab active" onclick="filterInterviews('all')">All Interviews</button>
+                    <button class="filter-tab" onclick="filterInterviews('completed')">Completed</button>
+                    <button class="filter-tab" onclick="filterInterviews('in_progress')">In Progress</button>
+                    <button class="filter-tab" onclick="filterInterviews('started')">Started</button>
+                </div>
+
+                <div class="interview-grid" id="interviewGrid">
                     {% for interview in interviews %}
-                    <div class="interview-card">
+                    <div class="interview-card" data-status="{{ interview.status or 'unknown' }}">
                         <div class="interview-header">
                             <div class="interview-info">
-                                <h3 class="interview-title">{{ interview.title or 'Untitled Interview' }}</h3>
+                                <h3>{{ interview.title or 'Untitled Interview' }}</h3>
                                 <div class="interview-meta">
                                     <div class="meta-item">
-                                        <i class="fas fa-calendar"></i>
+                                        <i class="fas fa-calendar-alt"></i>
                                         <span>{{ interview.created_at[:10] if interview.created_at else 'Unknown date' }}</span>
                                     </div>
                                     {% if interview.job_role %}
@@ -252,30 +450,42 @@ First Interview Sample: {{ interviews[0] if interviews else 'None' }}
                                 </div>
                             </div>
                             <div class="status-badge status-{{ interview.status or 'unknown' }}">
-                                {{ interview.status or 'Unknown' }}
+                                {% if interview.status == 'completed' %}
+                                    ✅ Completed
+                                {% elif interview.status == 'in_progress' %}
+                                    🔄 In Progress
+                                {% elif interview.status == 'started' %}
+                                    🚀 Started
+                                {% else %}
+                                    ❓ Unknown
+                                {% endif %}
                             </div>
                         </div>
 
+                        {% if interview.cv_text %}
+                        <div class="interview-preview">
+                            <strong>CV Preview:</strong> {{ interview.cv_text[:100] }}...
+                        </div>
+                        {% endif %}
+
                         <div class="interview-actions">
                             {% if interview.status == 'completed' %}
-                                <a href="#" class="btn-small btn-view" onclick="viewInterview('{{ interview.id }}')">
-                                    <i class="fas fa-eye"></i> View Details
+                                <a href="#" class="action-btn btn-view" onclick="viewInterview('{{ interview.id }}')">
+                                    <i class="fas fa-eye"></i> View Results
+                                </a>
+                            {% elif interview.status == 'in_progress' %}
+                                <a href="{{ url_for('interview') }}" class="action-btn btn-view">
+                                    <i class="fas fa-play"></i> Continue
                                 </a>
                             {% else %}
-                                <span class="btn-small" style="background: #e2e8f0; color: #64748b;">
-                                    <i class="fas fa-clock"></i> In Progress
+                                <span class="action-btn btn-disabled">
+                                    <i class="fas fa-clock"></i> Pending
                                 </span>
                             {% endif %}
-                            <button class="btn-small btn-delete" onclick="deleteInterview('{{ interview.id }}', '{{ interview.title or 'this interview' }}')">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="action-btn btn-delete" onclick="deleteInterview('{{ interview.id }}', '{{ interview.title or 'this interview' }}')">
+                                <i class="fas fa-trash-alt"></i> Delete
                             </button>
                         </div>
-
-                        <!-- Additional Debug Info Per Interview -->
-                        <details style="margin-top: 1rem;">
-                            <summary style="cursor: pointer; color: #64748b; font-size: 0.8rem;">Debug Interview Data</summary>
-                            <pre style="font-size: 0.8rem; background: #f8fafc; padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem;">{{ interview }}</pre>
-                        </details>
                     </div>
                     {% endfor %}
                 </div>
@@ -283,15 +493,15 @@ First Interview Sample: {{ interviews[0] if interviews else 'None' }}
                 <div class="empty-state">
                     <i class="fas fa-microphone-slash"></i>
                     <h3>No Interviews Yet</h3>
-                    <p>You haven't completed any interviews yet. Start your first interview to see it here!</p>
-                    <a href="{{ url_for('interview') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Start New Interview
+                    <p>Ready to kickstart your interview journey? Your first AI-powered interview is just a click away!</p>
+                    <a href="{{ url_for('interview') }}" class="cta-button">
+                        <i class="fas fa-rocket"></i> Start Your First Interview
                     </a>
                 </div>
             {% endif %}
 
-            <div style="text-align: center; margin-top: 3rem;">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <div style="text-align: center;">
+                <a href="{{ url_for('dashboard') }}" class="back-button">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
                 </a>
             </div>
@@ -302,10 +512,51 @@ First Interview Sample: {{ interviews[0] if interviews else 'None' }}
 
 {% block scripts %}
 <script>
+function filterInterviews(status) {
+    const cards = document.querySelectorAll('.interview-card');
+    const tabs = document.querySelectorAll('.filter-tab');
+    
+    // Update active tab
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter cards
+    cards.forEach(card => {
+        const cardStatus = card.dataset.status;
+        if (status === 'all' || cardStatus === status) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
 function viewInterview(interviewId) {
-    // For now, just show the interview details
-    alert('Interview details view - Interview ID: ' + interviewId);
-    // You can implement a modal or redirect to a details page
+    // Create a modal or redirect to details page
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 500px; text-align: center;">
+            <h3>Interview Details</h3>
+            <p>Interview ID: ${interviewId}</p>
+            <p>Detailed view coming soon!</p>
+            <button onclick="this.closest('div').parentElement.remove()" style="background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 function deleteInterview(interviewId, interviewTitle) {
@@ -328,15 +579,22 @@ function deleteInterview(interviewId, interviewTitle) {
     .then(response => response.json())
     .then(data => {
         if (data.message) {
-            showNotification('Interview deleted successfully', 'success');
-            // Remove the card from the DOM
-            deleteBtn.closest('.interview-card').remove();
+            showNotification('Interview deleted successfully! 🗑️', 'success');
             
-            // Check if no more interviews
-            const remainingCards = document.querySelectorAll('.interview-card').length;
-            if (remainingCards === 0) {
-                location.reload(); // Reload to show empty state
-            }
+            // Smooth removal animation
+            const card = deleteBtn.closest('.interview-card');
+            card.style.transform = 'scale(0.8)';
+            card.style.opacity = '0';
+            
+            setTimeout(() => {
+                card.remove();
+                
+                // Check if no more interviews
+                const remainingCards = document.querySelectorAll('.interview-card').length;
+                if (remainingCards === 0) {
+                    location.reload(); // Reload to show empty state
+                }
+            }, 300);
         } else {
             showNotification(data.error || 'Failed to delete interview', 'error');
             deleteBtn.innerHTML = originalText;
@@ -365,13 +623,14 @@ function showNotification(message, type = 'info') {
         background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
         color: white;
         padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         z-index: 10000;
         transform: translateX(100%);
         transition: transform 0.3s ease;
         max-width: 400px;
         word-wrap: break-word;
+        font-weight: 600;
     `;
     notification.textContent = message;
     
@@ -389,20 +648,6 @@ function showNotification(message, type = 'info') {
             notification.remove();
         }, 300);
     }, 4000);
-}
-
-.spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255,255,255,.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
 }
 </script>
 {% endblock %}
