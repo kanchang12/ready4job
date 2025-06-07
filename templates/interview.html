@@ -255,37 +255,46 @@
         margin-bottom: 2rem;
     }
 
-    /* ElevenLabs Widget Container */
+    /* ElevenLabs Widget Container - KEEP HIDDEN */
     .elevenlabs-widget-container {
-        margin: 2rem 0;
-        min-height: 400px;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        background: #f8fafc;
-        display: none;
-        position: relative;
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
         overflow: hidden;
     }
 
-    .elevenlabs-widget-container.active {
-        display: block;
-        border-color: #10b981;
+    .interview-status {
         background: #f0fdf4;
+        border: 2px solid #10b981;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 2rem 0;
+        text-align: center;
+        display: none;
     }
 
-    .widget-placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 400px;
-        color: #64748b;
+    .interview-status.active {
+        display: block;
     }
 
-    .widget-placeholder i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
+    .interview-status i {
+        font-size: 2.5rem;
         color: #10b981;
+        margin-bottom: 1rem;
+    }
+
+    .interview-status h4 {
+        color: #166534;
+        margin-bottom: 1rem;
+    }
+
+    .interview-status p {
+        color: #166534;
+        margin-bottom: 1.5rem;
     }
 
     .interview-controls {
@@ -294,6 +303,32 @@
         justify-content: center;
         margin-top: 2rem;
         flex-wrap: wrap;
+    }
+
+    .end-interview-btn {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .end-interview-btn:hover:not(:disabled) {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .end-interview-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
     }
 
     .spinner {
@@ -428,24 +463,22 @@
                     The interview will be conducted through voice. Make sure your microphone and speakers are working properly.
                 </div>
                 
-                <!-- ElevenLabs Widget Container -->
-                <div class="elevenlabs-widget-container" id="widgetContainer">
-                    <div class="widget-placeholder" id="widgetPlaceholder">
-                        <i class="fas fa-robot"></i>
-                        <h4>AI Interviewer Loading...</h4>
-                        <p>Preparing your personalized interview experience</p>
+                <!-- Interview Active Status -->
+                <div class="interview-status" id="interviewStatus">
+                    <i class="fas fa-microphone-alt"></i>
+                    <h4>Interview in Progress</h4>
+                    <p>The AI interviewer is ready to talk with you. Speak naturally and the conversation will flow.</p>
+                    
+                    <div class="interview-controls">
+                        <button class="end-interview-btn" onclick="endInterview()" id="endInterviewBtn">
+                            <i class="fas fa-stop"></i> End Interview
+                        </button>
                     </div>
-                    <!-- ElevenLabs widget will be dynamically inserted here -->
-                    <div id="elevenlabs-widget"></div>
                 </div>
                 
-                <div class="interview-controls" id="interviewControls" style="display: none;">
-                    <button class="btn btn-success" onclick="endInterview()" id="endInterviewBtn">
-                        <i class="fas fa-stop"></i> End Interview
-                    </button>
-                    <button class="btn btn-outline" onclick="pauseInterview()" id="pauseInterviewBtn">
-                        <i class="fas fa-pause"></i> Pause
-                    </button>
+                <!-- ElevenLabs Widget Container - HIDDEN -->
+                <div class="elevenlabs-widget-container" id="widgetContainer">
+                    <div id="elevenlabs-widget"></div>
                 </div>
 
                 <!-- Success Message -->
@@ -472,6 +505,7 @@
 let currentInterviewData = null;
 let conversationId = null;
 let isInterviewActive = false;
+let elevenLabsWidget = null;
 
 // File upload handling
 document.addEventListener('DOMContentLoaded', function() {
@@ -604,8 +638,7 @@ function showInterviewSession(data) {
 
 async function startVoiceInterview() {
     const btn = document.getElementById('startVoiceBtn');
-    const widgetContainer = document.getElementById('widgetContainer');
-    const controls = document.getElementById('interviewControls');
+    const interviewStatus = document.getElementById('interviewStatus');
     const statusText = document.getElementById('statusText');
     
     if (!currentInterviewData) {
@@ -618,25 +651,8 @@ async function startVoiceInterview() {
         btn.innerHTML = '<span class="spinner"></span> Starting Voice Interview...';
         btn.disabled = true;
         
-        // Show widget container
-        widgetContainer.classList.add('active');
-        
-        // Create ElevenLabs conversation widget
-        const widgetElement = document.getElementById('elevenlabs-widget');
-        
-        // IMPORTANT: Replace 'YOUR_AGENT_ID' with your actual ElevenLabs agent ID
-        const agentId = '{{ config.ELEVENLABS_AGENT_ID }}'; // Get from Flask config
-        
-        if (!agentId || agentId.includes('YOUR_AGENT_ID')) {
-            // Fallback for demo purposes
-            showSimulatedInterview();
-            return;
-        }
-        
-        // Create the actual ElevenLabs widget
-        widgetElement.innerHTML = `
-            <elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>
-        `;
+        // Initialize ElevenLabs widget in hidden container
+        await initializeElevenLabsWidget();
         
         // Update interview status in database
         const response = await fetch('/create_conversation', {
@@ -657,15 +673,12 @@ async function startVoiceInterview() {
             conversationId = data.conversation_id;
             isInterviewActive = true;
             
-            // Update UI
+            // Update UI - Hide start button and show interview status
             btn.style.display = 'none';
-            controls.style.display = 'flex';
+            interviewStatus.classList.add('active');
             statusText.textContent = 'Interview Active - AI is ready to talk!';
             
-            // Hide placeholder
-            document.getElementById('widgetPlaceholder').style.display = 'none';
-            
-            showNotification('Voice interview started! Start speaking to the AI interviewer.', 'success');
+            showNotification('Voice interview started! The AI interviewer is ready to speak with you.', 'success');
             
         } else {
             throw new Error(data.error || 'Failed to start voice interview');
@@ -678,37 +691,24 @@ async function startVoiceInterview() {
         // Reset button
         btn.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Interview';
         btn.disabled = false;
-        btn.style.display = 'block';
-        widgetContainer.classList.remove('active');
     }
 }
 
-function showSimulatedInterview() {
-    // For demo purposes when ElevenLabs is not configured
-    const btn = document.getElementById('startVoiceBtn');
-    const widgetContainer = document.getElementById('widgetContainer');
-    const controls = document.getElementById('interviewControls');
-    const statusText = document.getElementById('statusText');
-    const placeholder = document.getElementById('widgetPlaceholder');
+async function initializeElevenLabsWidget() {
+    const widgetElement = document.getElementById('elevenlabs-widget');
+    const agentId = '{{ config.ELEVENLABS_AGENT_ID }}';
     
-    btn.style.display = 'none';
-    widgetContainer.classList.add('active');
-    controls.style.display = 'flex';
-    statusText.textContent = 'Demo Mode - ElevenLabs Integration Required';
+    if (!agentId || agentId.includes('YOUR_AGENT_ID')) {
+        // Demo mode - no actual widget
+        console.log('Demo mode: ElevenLabs widget not configured');
+        return;
+    }
     
-    placeholder.innerHTML = `
-        <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
-        <h4 style="color: #f59e0b;">Demo Mode</h4>
-        <p>To enable real voice interviews, configure your ElevenLabs Agent ID in the environment variables.</p>
-        <p style="font-size: 0.9rem; margin-top: 1rem;">
-            Set ELEVENLABS_AGENT_ID in your .env file with your actual agent ID from ElevenLabs.
-        </p>
-    `;
+    // Create the ElevenLabs widget in hidden container
+    widgetElement.innerHTML = `<elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>`;
     
-    isInterviewActive = true;
-    conversationId = `demo_${Date.now()}`;
-    
-    showNotification('Demo mode active. Configure ElevenLabs for real voice interviews.', 'warning');
+    // Store reference to widget for later cleanup
+    elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
 }
 
 async function endInterview() {
@@ -723,6 +723,15 @@ async function endInterview() {
     try {
         endBtn.innerHTML = '<span class="spinner"></span> Ending Interview...';
         endBtn.disabled = true;
+        
+        // Stop ElevenLabs widget if it exists
+        if (elevenLabsWidget && typeof elevenLabsWidget.stop === 'function') {
+            try {
+                elevenLabsWidget.stop();
+            } catch (e) {
+                console.log('Widget stop method not available:', e);
+            }
+        }
         
         const response = await fetch('/end_interview', {
             method: 'POST',
@@ -740,10 +749,14 @@ async function endInterview() {
         if (response.ok) {
             isInterviewActive = false;
             
-            // Hide interview UI and show success message
-            document.getElementById('widgetContainer').style.display = 'none';
-            document.getElementById('interviewControls').style.display = 'none';
+            // Hide interview status and show success message
+            document.getElementById('interviewStatus').classList.remove('active');
             document.getElementById('successMessage').classList.add('show');
+            
+            // Clean up widget
+            const widgetElement = document.getElementById('elevenlabs-widget');
+            widgetElement.innerHTML = '';
+            elevenLabsWidget = null;
             
             showNotification('Interview ended successfully!', 'success');
             
@@ -759,11 +772,6 @@ async function endInterview() {
         endBtn.innerHTML = originalText;
         endBtn.disabled = false;
     }
-}
-
-function pauseInterview() {
-    // This would integrate with ElevenLabs pause functionality
-    showNotification('Pause functionality would integrate with ElevenLabs API', 'info');
 }
 
 // Notification system
