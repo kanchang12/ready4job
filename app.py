@@ -658,8 +658,9 @@ def create_conversation():
         interview_id = data.get('interview_id')
         cv_text = data.get('cv_text', '')
         job_role = data.get('job_role', '')
+        conversation_id = data.get('conversation_id')  # Get from frontend
         
-        print(f"Creating conversation for interview: {interview_id}")
+        print(f"Creating conversation for interview: {interview_id}, conversation: {conversation_id}")
         
         if not interview_id:
             return jsonify({'error': 'Interview ID required'}), 400
@@ -671,21 +672,18 @@ def create_conversation():
             if not interview_check.data:
                 return jsonify({'error': 'Interview not found'}), 404
         
-        # Create ElevenLabs conversation
-        conversation_id = create_elevenlabs_conversation(cv_text, job_role)
-        
+        # Update interview status with conversation ID
         if conversation_id:
-            # Update interview status
             update_interview_status(interview_id, 'in_progress', conversation_id)
             
             return jsonify({
                 'message': 'Voice interview started successfully',
                 'conversation_id': conversation_id,
                 'interview_id': interview_id,
-                'type': 'elevenlabs' if not conversation_id.startswith('demo_') else 'demo'
+                'type': 'elevenlabs'
             }), 200
         else:
-            return jsonify({'error': 'Failed to create conversation'}), 500
+            return jsonify({'error': 'No conversation ID provided'}), 400
         
     except Exception as e:
         print(f"Error creating conversation: {e}")
@@ -700,6 +698,9 @@ def end_interview():
         data = request.get_json()
         conversation_id = data.get('conversation_id')
         interview_id = data.get('interview_id')
+        transcript = data.get('transcript', [])
+        
+        print(f"Ending interview: {interview_id}, conversation: {conversation_id}")
         
         if not conversation_id or not interview_id:
             return jsonify({'error': 'Conversation ID and Interview ID required'}), 400
@@ -711,37 +712,47 @@ def end_interview():
             if not interview_check.data:
                 return jsonify({'error': 'Interview not found'}), 404
         
-        # Get transcript from ElevenLabs (if real conversation)
-        transcript = []
-        if not conversation_id.startswith('sim_'):
-            transcript = get_conversation_transcript(conversation_id)
+        # Update interview status to completed with transcript
+        update_data = {
+            'status': 'completed',
+            'completed_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        if transcript:
+            update_data['transcript'] = transcript
+            
+        if supabase:
+            result = supabase.table('interviews').update(update_data).eq('id', interview_id).eq('user_id', user_id).execute()
+            
+            if result.data:
+                return jsonify({
+                    'message': 'Interview ended successfully',
+                    'transcript_length': len(transcript),
+                    'status': 'completed'
+                }), 200
+            else:
+                return jsonify({'error': 'Failed to update interview status'}), 500
         else:
-            # Simulated transcript for demo
-            transcript = [
-                {"speaker": "AI", "message": "Hello! Thank you for joining today's interview. Can you start by telling me about yourself?"},
-                {"speaker": "User", "message": "Thank you for having me. I'm a software developer with 3 years of experience..."},
-                {"speaker": "AI", "message": "That's great! Can you tell me about a challenging project you've worked on?"},
-                {"speaker": "User", "message": "Sure, I recently worked on a microservices architecture project..."}
-            ]
-        
-        # Update interview status to completed
-        update_interview_status(interview_id, 'completed', conversation_id, transcript)
-        
-        return jsonify({
-            'message': 'Interview ended successfully',
-            'transcript_length': len(transcript)
-        }), 200
+            return jsonify({'message': 'Interview ended (no database)'}), 200
         
     except Exception as e:
         print(f"Error ending interview: {e}")
         return jsonify({'error': 'Failed to end interview'}), 500
 
-@app.route('/get_credits')
+
+# Also make sure you have this route for getting credits
+@app.route('/get_credits', methods=['GET'])
 def get_credits():
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
-    credits = get_user_credits(session['user_id'])
-    return jsonify({'credits': credits})
+    
+    try:
+        credits = get_user_credits(session['user_id'])
+        return jsonify({'credits': credits}), 200
+    except Exception as e:
+        print(f"Error getting credits: {e}")
+        return jsonify({'error': 'Failed to get credits'}), 500
 
 # Replace the create_order route in your app.py
 
