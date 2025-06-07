@@ -258,6 +258,22 @@
             </div>
             {% endif %}
 
+            <div class="card">
+    <h3>🔗 Webhook Data Received</h3>
+    {% if webhook_data %}
+        <div style="max-height: 400px; overflow-y: auto;">
+            {% for item in webhook_data %}
+            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+                <div style="font-weight: bold; margin-bottom: 5px;">{{ item.timestamp }}</div>
+                <pre style="background: #f1f5f9; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto;">{{ item.data | tojson(indent=2) }}</pre>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: #64748b;">No webhook data received yet.</p>
+    {% endif %}
+</div>
+
             <div class="action-items">
                 <div class="action-card">
                     <div class="action-icon">
