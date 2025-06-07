@@ -9,6 +9,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import razorpay
 import hmac
+import json
+from datetime import datetime
 import hashlib
 
 load_dotenv()
@@ -321,20 +323,9 @@ def create_purchase_record(user_id, amount, credits_purchased, transaction_id=No
 def index():
     return render_template('index.html')
 
-@app.route('/webhook/elevenlabs', methods=['POST'])
-def elevenlabs_webhook():
-    try:
-        data = request.get_json()
-        print("ElevenLabs data received:")
-        print(json.dumps(data, indent=2))
-        return jsonify({'status': 'received'}), 200
-    except Exception as e:
-        print(f"Webhook error: {e}")
-        return jsonify({'error': str(e)}), 500
 
-# Add this to your app.py
 
-# Store webhook data
+
 webhook_data = []
 
 @app.route('/webhook/elevenlabs', methods=['POST'])
