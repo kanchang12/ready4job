@@ -201,70 +201,112 @@ def update_interview_status(interview_id, status, conversation_id=None, transcri
 
 # Updated function to create ElevenLabs conversation with better error handling
 def create_elevenlabs_conversation(cv_text, job_role=None):
-    """Create a conversation with ElevenLabs - improved version"""
+    """Create a conversation with ElevenLabs using direct API call"""
     try:
         if not ELEVENLABS_API_KEY or not ELEVENLABS_AGENT_ID:
             print("ElevenLabs credentials not configured")
-            return None
+            return f"demo_{uuid.uuid4().hex[:8]}"  # Return demo ID
             
-        # Prepare enhanced context for the AI interviewer
-        context = f"""You are conducting a professional job interview. 
+        headers = {
+            'xi-api-key': ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json'
+        }
+        
+        # Create the context for the conversation
+        context = f"""You are an experienced professional interviewer conducting a job interview.
 
 CANDIDATE'S CV:
-{cv_text}
+{cv_text[:1500]}
 
-"""
-        if job_role:
-            context += f"POSITION APPLYING FOR: {job_role}\n\n"
+JOB ROLE: {job_role if job_role else "Based on CV background"}
+
+Conduct a natural, professional interview:
+1. Greet the candidate and ask them to introduce themselves
+2. Ask questions based on their CV experience and projects
+3. Ask technical questions relevant to their field
+4. Use their name naturally during conversation
+5. Keep interview 10-15 minutes
+6. End by asking if they have questions
+
+Be conversational, professional, and focus on their actual experience."""
+
+        payload = {
+            'agent_id': ELEVENLABS_AGENT_ID,
+            'context': context
+        }
+        
+        print(f"Creating ElevenLabs conversation with payload: {payload}")
+        
+        response = requests.post(
+            'https://api.elevenlabs.io/v1/convai/conversations',
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"ElevenLabs response: {response.status_code} - {response.text}")
+        
+        if response.status_code == 201:
+            conversation_data = response.json()
+            conversation_id = conversation_data.get('conversation_id')
+            print(f"Created conversation: {conversation_id}")
+            return conversation_id
+        else:
+            print(f"ElevenLabs API error: {response.status_code} - {response.text}")
+            return f"demo_{uuid.uuid4().hex[:8]}"  # Fallback to demo
             
-        context += """INTERVIEW INSTRUCTIONS:
-- Ask relevant questions based on their CV and experience
-- Be professional, encouraging, and thorough
-- Probe deeper into their technical skills and projects
-- Ask about specific experiences mentioned in their CV
-- Include behavioral questions about teamwork, challenges, etc.
-- Keep the conversation natural and flowing
-- End with asking if they have any questions for you
+    except Exception as e:
+        print(f"Error creating ElevenLabs conversation: {e}")
+        return f"demo_{uuid.uuid4().hex[:8]}"  # Fallback to demo
 
-Start by greeting them and asking them to introduce themselves briefly."""
+@app.route('/test_elevenlabs', methods=['POST'])
+def test_elevenlabs():
+    """Test ElevenLabs API connection"""
+    try:
+        if not ELEVENLABS_API_KEY or not ELEVENLABS_AGENT_ID:
+            return jsonify({
+                'error': 'ElevenLabs not configured',
+                'api_key_set': bool(ELEVENLABS_API_KEY),
+                'agent_id_set': bool(ELEVENLABS_AGENT_ID)
+            }), 400
         
         headers = {
             'xi-api-key': ELEVENLABS_API_KEY,
             'Content-Type': 'application/json'
         }
         
-        # Enhanced payload for better conversation
+        # Test with simple conversation
         payload = {
             'agent_id': ELEVENLABS_AGENT_ID,
-            'context': context,
-            'settings': {
-                'voice_settings': {
-                    'stability': 0.8,
-                    'similarity_boost': 0.75
-                }
-            }
+            'context': 'You are a professional interviewer. Say hello and introduce yourself.'
         }
         
         response = requests.post(
             'https://api.elevenlabs.io/v1/convai/conversations',
             headers=headers,
             json=payload,
-            timeout=30  # Add timeout
+            timeout=30
         )
         
         if response.status_code == 201:
-            conversation_data = response.json()
-            return conversation_data.get('conversation_id')
+            data = response.json()
+            return jsonify({
+                'success': True,
+                'conversation_id': data.get('conversation_id'),
+                'message': 'ElevenLabs connection successful'
+            }), 200
         else:
-            print(f"ElevenLabs API error: {response.status_code} - {response.text}")
-            return None
+            return jsonify({
+                'error': f'ElevenLabs API error: {response.status_code}',
+                'response': response.text
+            }), 400
             
-    except requests.exceptions.RequestException as e:
-        print(f"Network error creating ElevenLabs conversation: {e}")
-        return None
     except Exception as e:
-        print(f"Error creating ElevenLabs conversation: {e}")
-        return None
+        return jsonify({
+            'error': f'Connection failed: {str(e)}'
+        }), 500
+
+
 
 # Enhanced function to get conversation transcript
 def get_conversation_transcript(conversation_id):
@@ -416,6 +458,50 @@ def register():
     except Exception as e:
         print(f"Registration error: {e}")
         return jsonify({'error': str(e)}), 500
+
+# Add route to manually end conversation
+@app.route('/force_end_conversation', methods=['POST'])
+def force_end_conversation():
+    """Force end a conversation and update status"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        interview_id = data.get('interview_id')
+        
+        if not interview_id:
+            return jsonify({'error': 'Interview ID required'}), 400
+        
+        user_id = session['user_id']
+        
+        # Update interview status to completed
+        if supabase:
+            # First verify interview belongs to user
+            interview_check = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
+            if not interview_check.data:
+                return jsonify({'error': 'Interview not found'}), 404
+            
+            # Update to completed
+            result = supabase.table('interviews').update({
+                'status': 'completed',
+                'completed_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', interview_id).eq('user_id', user_id).execute()
+            
+            if result.data:
+                return jsonify({
+                    'message': 'Interview marked as completed',
+                    'interview_id': interview_id
+                }), 200
+            else:
+                return jsonify({'error': 'Failed to update interview'}), 500
+        else:
+            return jsonify({'error': 'Database not configured'}), 500
+            
+    except Exception as e:
+        print(f"Error force ending interview: {e}")
+        return jsonify({'error': 'Failed to end interview'}), 500
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -573,57 +659,33 @@ def create_conversation():
         cv_text = data.get('cv_text', '')
         job_role = data.get('job_role', '')
         
+        print(f"Creating conversation for interview: {interview_id}")
+        
         if not interview_id:
             return jsonify({'error': 'Interview ID required'}), 400
         
         # Verify interview belongs to user
         user_id = session['user_id']
         if supabase:
-            try:
-                # Try to get all interview data
-                interview_check = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
-                if not interview_check.data:
-                    return jsonify({'error': 'Interview not found'}), 404
-                
-                # Get job_role from database if available
-                interview_data = interview_check.data[0]
-                stored_job_role = interview_data.get('job_role')
-                if stored_job_role:
-                    job_role = stored_job_role
-                    
-            except Exception as e:
-                print(f"Error fetching interview data: {e}")
-                # Just verify the interview exists
-                interview_check = supabase.table('interviews').select('id').eq('id', interview_id).eq('user_id', user_id).execute()
-                if not interview_check.data:
-                    return jsonify({'error': 'Interview not found'}), 404
+            interview_check = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
+            if not interview_check.data:
+                return jsonify({'error': 'Interview not found'}), 404
         
-        # Create ElevenLabs conversation or simulate it
-        conversation_id = None
+        # Create ElevenLabs conversation
+        conversation_id = create_elevenlabs_conversation(cv_text, job_role)
         
-        if ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID:
-            # Try to create real ElevenLabs conversation
-            conversation_id = create_elevenlabs_conversation(cv_text, job_role)
-            
         if conversation_id:
-            # Real ElevenLabs conversation created
+            # Update interview status
             update_interview_status(interview_id, 'in_progress', conversation_id)
             
             return jsonify({
                 'message': 'Voice interview started successfully',
                 'conversation_id': conversation_id,
-                'type': 'elevenlabs'
+                'interview_id': interview_id,
+                'type': 'elevenlabs' if not conversation_id.startswith('demo_') else 'demo'
             }), 200
         else:
-            # Simulate conversation for demo
-            simulated_conversation_id = f"sim_{uuid.uuid4().hex[:8]}"
-            update_interview_status(interview_id, 'in_progress', simulated_conversation_id)
-            
-            return jsonify({
-                'message': 'Voice interview started (demo mode)',
-                'conversation_id': simulated_conversation_id,
-                'type': 'demo'
-            }), 200
+            return jsonify({'error': 'Failed to create conversation'}), 500
         
     except Exception as e:
         print(f"Error creating conversation: {e}")
