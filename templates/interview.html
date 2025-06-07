@@ -535,10 +535,16 @@
 
 {% block scripts %}
 <script>
+// Complete Interview JavaScript - Replace entire script section in interview.html
+
 let currentInterviewData = null;
 let conversationId = null;
 let isInterviewActive = false;
 let elevenLabsWidget = null;
+
+// Get credentials from Flask environment variables
+const ELEVENLABS_API_KEY = '{{ config.ELEVENLABS_API_KEY }}';
+const ELEVENLABS_AGENT_ID = '{{ config.ELEVENLABS_AGENT_ID }}';
 
 // File upload handling
 document.addEventListener('DOMContentLoaded', function() {
@@ -669,8 +675,6 @@ function showInterviewSession(data) {
     document.getElementById('sessionTitle').textContent = 'Ready for Voice Interview';
 }
 
-// Replace the startVoiceInterview function in your interview.html
-
 async function startVoiceInterview() {
     const btn = document.getElementById('startVoiceBtn');
     const interviewStatus = document.getElementById('interviewStatus');
@@ -686,45 +690,81 @@ async function startVoiceInterview() {
         btn.innerHTML = '<span class="spinner"></span> Starting Voice Interview...';
         btn.disabled = true;
         
-        console.log('Starting interview with data:', currentInterviewData);
+        console.log('Creating ElevenLabs conversation...');
         
-        // Update interview status in database
-        const response = await fetch('/create_conversation', {
+        // Direct API call to ElevenLabs to CREATE conversation
+        const elevenLabsResponse = await fetch('https://api.elevenlabs.io/v1/convai/conversations', {
             method: 'POST',
             headers: {
+                'xi-api-key': ELEVENLABS_API_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                interview_id: currentInterviewData.interview_id,
-                cv_text: currentInterviewData.cv_text || '',
-                job_role: currentInterviewData.job_role || ''
+                agent_id: ELEVENLABS_AGENT_ID,
+                context: `You are an experienced professional interviewer conducting a job interview.
+
+CANDIDATE'S CV:
+${currentInterviewData.cv_text}
+
+JOB ROLE: ${currentInterviewData.job_role || "Based on CV background"}
+
+Conduct a natural, professional interview:
+1. Greet the candidate and ask them to introduce themselves
+2. Ask questions based on their CV experience and projects  
+3. Ask technical questions relevant to their field
+4. Use their name naturally during conversation
+5. Keep interview 10-15 minutes
+6. End by asking if they have questions
+
+Be conversational, professional, and focus on their actual experience.`
             })
         });
         
-        const data = await response.json();
-        console.log('Create conversation response:', data);
+        const elevenLabsData = await elevenLabsResponse.json();
+        console.log('ElevenLabs CREATE response:', elevenLabsData);
         
-        if (response.ok) {
-            conversationId = data.conversation_id;
-            isInterviewActive = true;
+        if (elevenLabsResponse.ok && elevenLabsData.conversation_id) {
+            conversationId = elevenLabsData.conversation_id;
+            console.log('Conversation created:', conversationId);
             
-            // Check if we have a real ElevenLabs conversation or demo
-            if (data.type === 'elevenlabs') {
-                // Try to initialize the actual ElevenLabs widget
-                await initializeElevenLabsWidget();
-                showNotification('Voice interview started! The AI interviewer should begin speaking soon.', 'success');
+            // Update backend database
+            const backendResponse = await fetch('/create_conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    interview_id: currentInterviewData.interview_id,
+                    cv_text: currentInterviewData.cv_text || '',
+                    job_role: currentInterviewData.job_role || '',
+                    conversation_id: conversationId
+                })
+            });
+            
+            const backendData = await backendResponse.json();
+            console.log('Backend response:', backendData);
+            
+            if (backendResponse.ok) {
+                isInterviewActive = true;
+                
+                // Create HIDDEN widget that actually works
+                const widgetElement = document.getElementById('elevenlabs-widget');
+                widgetElement.innerHTML = `<elevenlabs-convai agent-id="${ELEVENLABS_AGENT_ID}" conversation-id="${conversationId}"></elevenlabs-convai>`;
+                
+                // Store reference for cleanup
+                elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
+                
+                // Update UI - Hide start button and show interview status
+                btn.style.display = 'none';
+                interviewStatus.style.display = 'block';
+                statusText.textContent = 'Interview Active - Speaking with AI Interviewer';
+                
+                showNotification('Voice interview started! The AI interviewer should begin speaking.', 'success');
             } else {
-                // Demo mode
-                showNotification('Demo mode: ElevenLabs not configured. Interview simulation started.', 'warning');
+                throw new Error(backendData.error || 'Backend update failed');
             }
-            
-            // Update UI - Hide start button and show interview status
-            btn.style.display = 'none';
-            interviewStatus.classList.add('active');
-            statusText.textContent = 'Interview Active - AI Interviewer Ready';
-            
         } else {
-            throw new Error(data.error || 'Failed to start voice interview');
+            throw new Error('Failed to create ElevenLabs conversation: ' + JSON.stringify(elevenLabsData));
         }
         
     } catch (error) {
@@ -734,63 +774,6 @@ async function startVoiceInterview() {
         // Reset button
         btn.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Interview';
         btn.disabled = false;
-    }
-}
-
-async function initializeElevenLabsWidget() {
-    const widgetElement = document.getElementById('elevenlabs-widget');
-    const agentId = '{{ config.ELEVENLABS_AGENT_ID }}';
-    
-    console.log('Initializing ElevenLabs widget with agent ID:', agentId);
-    
-    if (!agentId || agentId.includes('YOUR_AGENT_ID') || agentId === '') {
-        console.log('ElevenLabs agent ID not configured');
-        return false;
-    }
-    
-    try {
-        // Clear any existing content
-        widgetElement.innerHTML = '';
-        
-        // Create the ElevenLabs widget
-        const widgetHTML = `<elevenlabs-convai agent-id="${agentId}" conversation-id="${conversationId}"></elevenlabs-convai>`;
-        widgetElement.innerHTML = widgetHTML;
-        
-        // Store reference for cleanup
-        elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
-        
-        console.log('ElevenLabs widget created successfully');
-        return true;
-        
-    } catch (error) {
-        console.error('Error initializing ElevenLabs widget:', error);
-        return false;
-    }
-}
-
-async function initializeElevenLabsWidget() {
-    const widgetElement = document.getElementById('elevenlabs-widget');
-    const agentId = '{{ config.ELEVENLABS_AGENT_ID }}';
-    
-    console.log('Initializing ElevenLabs widget with agent ID:', agentId);
-    
-    if (!agentId || agentId.includes('YOUR_AGENT_ID') || agentId === '') {
-        // Demo mode - still functional but no real widget
-        console.log('Demo mode: ElevenLabs agent ID not configured');
-        return;
-    }
-    
-    try {
-        // Create the ElevenLabs widget in hidden container
-        widgetElement.innerHTML = `<elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>`;
-        
-        // Store reference for cleanup
-        elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
-        
-        console.log('ElevenLabs widget initialized successfully');
-        
-    } catch (error) {
-        console.error('Error initializing ElevenLabs widget:', error);
     }
 }
 
@@ -809,60 +792,77 @@ async function endInterview() {
         endBtn.innerHTML = '<span class="spinner"></span> Ending Interview...';
         endBtn.disabled = true;
         
-        // Stop ElevenLabs widget if it exists
-        if (elevenLabsWidget && typeof elevenLabsWidget.stop === 'function') {
-            try {
-                elevenLabsWidget.stop();
-            } catch (e) {
-                console.log('Widget stop method not available:', e);
+        console.log('Ending conversation:', conversationId);
+        
+        // Get transcript before ending
+        let transcript = [];
+        try {
+            const transcriptResponse = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
+                method: 'GET',
+                headers: {
+                    'xi-api-key': ELEVENLABS_API_KEY
+                }
+            });
+            
+            if (transcriptResponse.ok) {
+                const transcriptData = await transcriptResponse.json();
+                transcript = transcriptData.transcript || [];
+                console.log('Retrieved transcript:', transcript);
             }
+        } catch (e) {
+            console.log('Could not retrieve transcript:', e);
         }
         
-        const response = await fetch('/end_interview', {
+        // Direct API call to ElevenLabs to END conversation
+        const elevenLabsEndResponse = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
+            method: 'DELETE',
+            headers: {
+                'xi-api-key': ELEVENLABS_API_KEY,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('ElevenLabs END response:', elevenLabsEndResponse.status);
+        
+        // Update backend to completed status
+        const backendResponse = await fetch('/end_interview', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 conversation_id: conversationId,
-                interview_id: currentInterviewData.interview_id
+                interview_id: currentInterviewData.interview_id,
+                transcript: transcript,
+                status: 'completed'
             })
         });
         
-        const data = await response.json();
+        const backendData = await backendResponse.json();
+        console.log('Backend end response:', backendData);
         
-        if (response.ok) {
+        if (backendResponse.ok) {
             isInterviewActive = false;
-            
-            // Update status to completed
-            interviewStatus.classList.remove('active');
-            interviewStatus.classList.add('completed');
-            interviewStatus.innerHTML = `
-                <i class="fas fa-check-circle"></i>
-                <h4>Interview Completed</h4>
-                <p>Your interview has been successfully completed and saved.</p>
-                <div style="margin-top: 1.5rem;">
-                    <a href="${data.review_url || '/history'}" class="btn btn-primary">View Results</a>
-                    <a href="/dashboard" class="btn btn-outline">Back to Dashboard</a>
-                </div>
-            `;
-            interviewStatus.style.display = 'block';
-            statusText.textContent = 'Interview Completed Successfully';
             
             // Clean up widget
             const widgetElement = document.getElementById('elevenlabs-widget');
             widgetElement.innerHTML = '';
             elevenLabsWidget = null;
             
-            showNotification('Interview completed successfully!', 'success');
+            // Hide interview status and show success message
+            interviewStatus.style.display = 'none';
+            document.getElementById('successMessage').style.display = 'block';
+            statusText.textContent = 'Interview Completed Successfully';
+            
+            showNotification('Interview completed and saved successfully!', 'success');
             
         } else {
-            throw new Error(data.error || 'Failed to end interview');
+            throw new Error(backendData.error || 'Failed to save interview completion');
         }
         
     } catch (error) {
         console.error('Error ending interview:', error);
-        showNotification(error.message || 'Failed to end interview', 'error');
+        showNotification(error.message || 'Failed to end interview properly', 'error');
         
         // Reset button
         endBtn.innerHTML = originalText;
@@ -919,5 +919,21 @@ window.addEventListener('beforeunload', function(e) {
         e.returnValue = 'You have an active interview. Are you sure you want to leave?';
     }
 });
+
+// Auto-refresh credits every 30 seconds
+setInterval(async () => {
+    try {
+        const response = await fetch('/get_credits');
+        if (response.ok) {
+            const data = await response.json();
+            const creditsElements = document.querySelectorAll('#userCredits, #creditsDisplay, #currentCredits');
+            creditsElements.forEach(el => {
+                if (el) el.textContent = data.credits;
+            });
+        }
+    } catch (error) {
+        console.error('Error refreshing credits:', error);
+    }
+}, 30000);
 </script>
 {% endblock %}
