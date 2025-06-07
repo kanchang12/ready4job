@@ -760,7 +760,9 @@ def create_razorpay_order():
         return jsonify({'error': f'Failed to create order: {str(e)}'}), 500
 
         
-def verify_razorpay_payment():
+@app.route('/verify_payment', methods=['POST'])
+def verify_payment():
+    """Verify Razorpay payment and add credits to user account"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
@@ -770,9 +772,12 @@ def verify_razorpay_payment():
         razorpay_payment_id = data.get('razorpay_payment_id') 
         razorpay_signature = data.get('razorpay_signature')
         
+        print(f"Verifying payment: {razorpay_payment_id}")
+        
         # Handle demo mode
         if razorpay_order_id and razorpay_order_id.startswith('demo_order_'):
-            credits_to_add = data.get('credits', 10)  # Default to 10 credits for demo
+            # For demo mode, determine credits from order_id or default
+            credits_to_add = 10  # Default demo credits
             
             if add_credits(session['user_id'], credits_to_add):
                 return jsonify({
@@ -784,43 +789,58 @@ def verify_razorpay_payment():
             else:
                 return jsonify({'error': 'Failed to add credits in demo mode'}), 500
         
+        # Validate required fields for real payment
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return jsonify({'error': 'Missing payment data'}), 400
         
+        # Check if Razorpay is configured
         if not RAZORPAY_KEY_SECRET:
             return jsonify({'error': 'Payment verification not configured'}), 500
         
         # Verify signature
-        generated_signature = hmac.new(
-            RAZORPAY_KEY_SECRET.encode('utf-8'),
-            f"{razorpay_order_id}|{razorpay_payment_id}".encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
+        try:
+            generated_signature = hmac.new(
+                RAZORPAY_KEY_SECRET.encode('utf-8'),
+                f"{razorpay_order_id}|{razorpay_payment_id}".encode('utf-8'),
+                hashlib.sha256
+            ).hexdigest()
+            
+            if generated_signature != razorpay_signature:
+                print(f"Signature mismatch: {generated_signature} != {razorpay_signature}")
+                return jsonify({'error': 'Invalid payment signature'}), 400
+                
+        except Exception as e:
+            print(f"Signature verification error: {e}")
+            return jsonify({'error': 'Payment verification failed'}), 500
         
-        if generated_signature != razorpay_signature:
-            return jsonify({'error': 'Invalid payment signature'}), 400
-        
+        # Fetch order details from Razorpay
         if razorpay_client:
             try:
                 order = razorpay_client.order.fetch(razorpay_order_id)
-                credits_to_add = int(order['notes']['credits'])
+                credits_to_add = int(order.get('notes', {}).get('credits', 10))
                 
+                print(f"Order verified. Adding {credits_to_add} credits to user {session['user_id']}")
+                
+                # Add credits to user account
                 if add_credits(session['user_id'], credits_to_add):
-                    # Update purchase record
-                    if supabase:
-                        supabase.table('purchases').update({
-                            'status': 'completed',
-                            'transaction_id': razorpay_payment_id,
-                            'updated_at': datetime.now().isoformat()
-                        }).eq('transaction_id', razorpay_order_id).execute()
+                    # Update purchase record to completed
+                    try:
+                        if supabase:
+                            supabase.table('purchases').update({
+                                'status': 'completed',
+                                'transaction_id': razorpay_payment_id,
+                                'updated_at': datetime.now().isoformat()
+                            }).eq('transaction_id', razorpay_order_id).execute()
+                    except Exception as e:
+                        print(f"Error updating purchase record: {e}")
                     
                     return jsonify({
-                        'message': 'Payment successful',
+                        'message': f'Payment successful! {credits_to_add} credits added.',
                         'credits_added': credits_to_add,
                         'new_balance': get_user_credits(session['user_id'])
                     }), 200
                 else:
-                    return jsonify({'error': 'Failed to add credits'}), 500
+                    return jsonify({'error': 'Failed to add credits to account'}), 500
                     
             except Exception as e:
                 print(f"Error fetching Razorpay order: {e}")
@@ -829,7 +849,7 @@ def verify_razorpay_payment():
             return jsonify({'error': 'Payment system not configured'}), 500
             
     except Exception as e:
-        print(f"Error verifying payment: {e}")
+        print(f"Error in payment verification: {e}")
         return jsonify({'error': 'Payment verification failed'}), 500
 
 @app.route('/history')
