@@ -600,16 +600,44 @@ def history():
         return redirect(url_for('index'))
     
     user_id = session['user_id']
+    interview_list = []
+    supabase_connected = False
+    
     try:
+        print(f"History: Fetching interviews for user_id: {user_id}")
+        
         if supabase:
+            supabase_connected = True
+            print("History: Supabase client is available")
+            
+            # Try to fetch interviews
             interviews = supabase.table('interviews').select('*').eq('user_id', user_id).order('created_at', desc=True).execute()
-            interview_list = interviews.data if interviews.data else []
+            
+            print(f"History: Supabase query result: {interviews}")
+            print(f"History: Interviews data: {interviews.data}")
+            print(f"History: Number of interviews: {len(interviews.data) if interviews.data else 0}")
+            
+            if interviews.data:
+                interview_list = interviews.data
+                print(f"History: Successfully fetched {len(interview_list)} interviews")
+                for i, interview in enumerate(interview_list):
+                    print(f"History: Interview {i}: {interview}")
+            else:
+                print("History: No interviews found in database")
+                
         else:
-            interview_list = []
-        return render_template('history.html', interviews=interview_list)
+            print("History: Supabase client is None")
+            
     except Exception as e:
         print(f"Error getting interview history: {e}")
-        return render_template('history.html', interviews=[])
+        import traceback
+        traceback.print_exc()
+    
+    print(f"History: Final interview_list length: {len(interview_list)}")
+    
+    return render_template('history.html', 
+                         interviews=interview_list,
+                         supabase_connected=supabase_connected)
 
 @app.route('/delete_interview/<interview_id>', methods=['DELETE'])
 def delete_interview(interview_id):
