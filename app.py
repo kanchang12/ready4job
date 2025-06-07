@@ -321,6 +321,17 @@ def create_purchase_record(user_id, amount, credits_purchased, transaction_id=No
 def index():
     return render_template('index.html')
 
+@app.route('/webhook/elevenlabs', methods=['POST'])
+def elevenlabs_webhook():
+    try:
+        data = request.get_json()
+        print("ElevenLabs data received:")
+        print(json.dumps(data, indent=2))
+        return jsonify({'status': 'received'}), 200
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/register', methods=['POST'])
 def register():
     try:
