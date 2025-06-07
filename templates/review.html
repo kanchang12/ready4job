@@ -123,6 +123,171 @@
         line-height: 1.6;
     }
 
+    /* Collapsible Content Styles */
+    .collapsible-header {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .collapsible-header:hover {
+        background: #f1f5f9;
+        border-color: #3b82f6;
+    }
+
+    .collapsible-header h4 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .collapsible-icon {
+        transition: transform 0.3s ease;
+        color: #64748b;
+    }
+
+    .collapsible-header.active .collapsible-icon {
+        transform: rotate(180deg);
+    }
+
+    .collapsible-content {
+        display: none;
+        padding: 1.5rem;
+        background: #fafbfc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .collapsible-content.active {
+        display: block;
+    }
+
+    /* Transcript Styles */
+    .transcript-item {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #e2e8f0;
+    }
+
+    .transcript-item.interviewer {
+        background: #f0f9ff;
+        border-left-color: #3b82f6;
+    }
+
+    .transcript-item.candidate {
+        background: #f0fdf4;
+        border-left-color: #10b981;
+    }
+
+    .transcript-speaker {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #1e293b;
+    }
+
+    .transcript-speaker.interviewer {
+        color: #3b82f6;
+    }
+
+    .transcript-speaker.candidate {
+        color: #10b981;
+    }
+
+    .transcript-text {
+        line-height: 1.6;
+        color: #374151;
+    }
+
+    .transcript-timestamp {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 0.5rem;
+    }
+
+    /* Feedback Styles */
+    .feedback-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .feedback-section h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .feedback-content {
+        padding: 1rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        line-height: 1.6;
+        color: #374151;
+    }
+
+    .score-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        background: #10b981;
+        color: white;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .score-badge.low {
+        background: #ef4444;
+    }
+
+    .score-badge.medium {
+        background: #f59e0b;
+    }
+
+    .score-badge.high {
+        background: #10b981;
+    }
+
+    .strengths-list, .improvements-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .strengths-list li, .improvements-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .strengths-list li:last-child, .improvements-list li:last-child {
+        border-bottom: none;
+    }
+
+    .strengths-list li::before {
+        content: "✅";
+        flex-shrink: 0;
+    }
+
+    .improvements-list li::before {
+        content: "📈";
+        flex-shrink: 0;
+    }
+
     .action-items {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -167,6 +332,36 @@
         color: #64748b;
         margin-bottom: 1.5rem;
         line-height: 1.6;
+    }
+
+    .webhook-data-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+    }
+
+    .webhook-item {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+    }
+
+    .webhook-timestamp {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .no-data {
+        text-align: center;
+        color: #64748b;
+        font-style: italic;
+        padding: 2rem;
     }
 </style>
 {% endblock %}
@@ -244,35 +439,182 @@
             <div class="detail-section">
                 <h3>📄 CV Analysis</h3>
                 <p>Your CV was analyzed and used to generate personalized interview questions. The AI interviewer tailored the conversation based on your experience, skills, and background mentioned in your CV.</p>
-                <details>
-                    <summary style="cursor: pointer; font-weight: 600; margin-bottom: 1rem;">View CV Content</summary>
-                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem; max-height: 300px; overflow-y: auto;">{{ interview.cv_text[:1000] }}{% if interview.cv_text|length > 1000 %}...{% endif %}</div>
-                </details>
+                
+                <div class="collapsible-header" onclick="toggleCollapsible('cv-content')">
+                    <h4>View CV Content</h4>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
+                </div>
+                <div class="collapsible-content" id="cv-content">
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem; max-height: 300px; overflow-y: auto; line-height: 1.4;">{{ interview.cv_text }}</div>
+                </div>
             </div>
             {% endif %}
 
-            {% if interview.feedback %}
+            <!-- Interview Transcript Section -->
+            {% if webhook_data %}
+                {% for item in webhook_data %}
+                    {% if item.data and item.data.transcript %}
+                    <div class="detail-section">
+                        <h3>💬 Interview Transcript</h3>
+                        <p>Complete conversation between you and the AI interviewer.</p>
+                        
+                        <div class="collapsible-header" onclick="toggleCollapsible('transcript-content')">
+                            <h4>View Full Transcript</h4>
+                            <i class="fas fa-chevron-down collapsible-icon"></i>
+                        </div>
+                        <div class="collapsible-content" id="transcript-content">
+                            {% if item.data.transcript is string %}
+                                <!-- Handle string transcript -->
+                                <div class="transcript-item">
+                                    <div class="transcript-text">{{ item.data.transcript }}</div>
+                                </div>
+                            {% elif item.data.transcript is iterable %}
+                                <!-- Handle array/list transcript -->
+                                {% for turn in item.data.transcript %}
+                                    <div class="transcript-item {{ 'interviewer' if turn.speaker == 'agent' else 'candidate' }}">
+                                        <div class="transcript-speaker {{ 'interviewer' if turn.speaker == 'agent' else 'candidate' }}">
+                                            {% if turn.speaker == 'agent' %}
+                                                🤖 AI Interviewer
+                                            {% else %}
+                                                👤 You
+                                            {% endif %}
+                                        </div>
+                                        <div class="transcript-text">{{ turn.text or turn.message or turn.content }}</div>
+                                        {% if turn.timestamp %}
+                                        <div class="transcript-timestamp">{{ turn.timestamp }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% break %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <!-- AI Feedback Section -->
+            {% if webhook_data %}
+                {% for item in webhook_data %}
+                    {% if item.data and (item.data.feedback or item.data.analysis or item.data.review) %}
+                    <div class="detail-section">
+                        <h3>🎯 AI Feedback & Analysis</h3>
+                        <p>Detailed analysis of your interview performance with actionable insights.</p>
+                        
+                        <div class="collapsible-header" onclick="toggleCollapsible('feedback-content')">
+                            <h4>View Detailed Feedback</h4>
+                            <i class="fas fa-chevron-down collapsible-icon"></i>
+                        </div>
+                        <div class="collapsible-content" id="feedback-content">
+                            {% set feedback_data = item.data.feedback or item.data.analysis or item.data.review %}
+                            
+                            {% if feedback_data.overall_score or feedback_data.score %}
+                            <div class="feedback-section">
+                                <h5>
+                                    📊 Overall Performance
+                                    <span class="score-badge {{ 'high' if (feedback_data.overall_score or feedback_data.score) >= 80 else 'medium' if (feedback_data.overall_score or feedback_data.score) >= 60 else 'low' }}">
+                                        {{ feedback_data.overall_score or feedback_data.score }}/100
+                                    </span>
+                                </h5>
+                            </div>
+                            {% endif %}
+
+                            {% if feedback_data.summary %}
+                            <div class="feedback-section">
+                                <h5>📝 Summary</h5>
+                                <div class="feedback-content">{{ feedback_data.summary }}</div>
+                            </div>
+                            {% endif %}
+
+                            {% if feedback_data.strengths %}
+                            <div class="feedback-section">
+                                <h5>💪 Strengths</h5>
+                                <div class="feedback-content">
+                                    {% if feedback_data.strengths is string %}
+                                        {{ feedback_data.strengths }}
+                                    {% else %}
+                                        <ul class="strengths-list">
+                                        {% for strength in feedback_data.strengths %}
+                                            <li>{{ strength }}</li>
+                                        {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if feedback_data.areas_for_improvement or feedback_data.improvements %}
+                            <div class="feedback-section">
+                                <h5>📈 Areas for Improvement</h5>
+                                <div class="feedback-content">
+                                    {% set improvements = feedback_data.areas_for_improvement or feedback_data.improvements %}
+                                    {% if improvements is string %}
+                                        {{ improvements }}
+                                    {% else %}
+                                        <ul class="improvements-list">
+                                        {% for improvement in improvements %}
+                                            <li>{{ improvement }}</li>
+                                        {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if feedback_data.recommendations %}
+                            <div class="feedback-section">
+                                <h5>💡 Recommendations</h5>
+                                <div class="feedback-content">
+                                    {% if feedback_data.recommendations is string %}
+                                        {{ feedback_data.recommendations }}
+                                    {% else %}
+                                        <ul class="improvements-list">
+                                        {% for rec in feedback_data.recommendations %}
+                                            <li>{{ rec }}</li>
+                                        {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if feedback_data.detailed_analysis %}
+                            <div class="feedback-section">
+                                <h5>🔍 Detailed Analysis</h5>
+                                <div class="feedback-content">{{ feedback_data.detailed_analysis }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% break %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <!-- Raw Webhook Data (for debugging) -->
+            {% if webhook_data %}
+            <div class="webhook-data-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('webhook-content')">
+                    <h4>🔗 Technical Data (Webhook Responses)</h4>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
+                </div>
+                <div class="collapsible-content" id="webhook-content">
+                    {% for item in webhook_data %}
+                    <div class="webhook-item">
+                        <div class="webhook-timestamp">{{ item.timestamp }}</div>
+                        <pre style="background: #f1f5f9; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; max-height: 200px; overflow-y: auto;">{{ item.data | tojson(indent=2) }}</pre>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
             <div class="detail-section">
-                <h3>💬 AI Feedback</h3>
-                <p>{{ interview.feedback.summary or 'Detailed feedback will be available once the AI analysis is complete.' }}</p>
+                <h3>⏳ Processing</h3>
+                <div class="no-data">
+                    Interview data is still being processed. Transcript and feedback will appear here once analysis is complete.
+                </div>
             </div>
             {% endif %}
-
-            <div class="card">
-    <h3>🔗 Webhook Data Received</h3>
-    {% if webhook_data %}
-        <div style="max-height: 400px; overflow-y: auto;">
-            {% for item in webhook_data %}
-            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
-                <div style="font-weight: bold; margin-bottom: 5px;">{{ item.timestamp }}</div>
-                <pre style="background: #f1f5f9; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto;">{{ item.data | tojson(indent=2) }}</pre>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p style="color: #64748b;">No webhook data received yet.</p>
-    {% endif %}
-</div>
 
             <div class="action-items">
                 <div class="action-card">
@@ -305,4 +647,34 @@
         </section>
     </div>
 </main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleCollapsible(contentId) {
+    const content = document.getElementById(contentId);
+    const header = content.previousElementSibling;
+    const icon = header.querySelector('.collapsible-icon');
+    
+    if (content.classList.contains('active')) {
+        content.classList.remove('active');
+        header.classList.remove('active');
+    } else {
+        content.classList.add('active');
+        header.classList.add('active');
+    }
+}
+
+// Auto-expand first section if there's content
+document.addEventListener('DOMContentLoaded', function() {
+    const firstCollapsible = document.querySelector('.collapsible-content');
+    if (firstCollapsible) {
+        // Auto-expand transcript if available
+        const transcriptContent = document.getElementById('transcript-content');
+        if (transcriptContent) {
+            toggleCollapsible('transcript-content');
+        }
+    }
+});
+</script>
 {% endblock %}
