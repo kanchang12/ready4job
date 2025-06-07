@@ -535,7 +535,7 @@
 
 {% block scripts %}
 <script>
-// Complete Interview JavaScript - Replace entire script section in interview.html
+// COMPLETE JavaScript for interview.html - Replace entire <script> section
 
 let currentInterviewData = null;
 let conversationId = null;
@@ -675,6 +675,7 @@ function showInterviewSession(data) {
     document.getElementById('sessionTitle').textContent = 'Ready for Voice Interview';
 }
 
+// Widget-based solution
 async function startVoiceInterview() {
     const btn = document.getElementById('startVoiceBtn');
     const interviewStatus = document.getElementById('interviewStatus');
@@ -690,110 +691,87 @@ async function startVoiceInterview() {
         btn.innerHTML = '<span class="spinner"></span> Starting Voice Interview...';
         btn.disabled = true;
         
-        console.log('Creating ElevenLabs conversation...');
+        console.log('Starting widget-based interview...');
         
-        // Direct API call to ElevenLabs to CREATE conversation
-        const elevenLabsResponse = await fetch('https://api.elevenlabs.io/v1/convai/conversations', {
+        // Update backend first
+        const backendResponse = await fetch('/create_conversation', {
             method: 'POST',
             headers: {
-                'xi-api-key': ELEVENLABS_API_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                agent_id: ELEVENLABS_AGENT_ID,
-                context: `You are an experienced professional interviewer conducting a job interview.
-
-CANDIDATE'S CV:
-${currentInterviewData.cv_text}
-
-JOB ROLE: ${currentInterviewData.job_role || "Based on CV background"}
-
-Conduct a natural, professional interview:
-1. Greet the candidate and ask them to introduce themselves
-2. Ask questions based on their CV experience and projects  
-3. Ask technical questions relevant to their field
-4. Use their name naturally during conversation
-5. Keep interview 10-15 minutes
-6. End by asking if they have questions
-
-Be conversational, professional, and focus on their actual experience.`
+                interview_id: currentInterviewData.interview_id,
+                cv_text: currentInterviewData.cv_text || '',
+                job_role: currentInterviewData.job_role || '',
+                conversation_id: `widget_${Date.now()}` // Generate temp ID
             })
         });
         
-        const elevenLabsData = await elevenLabsResponse.json();
-        console.log('ElevenLabs CREATE response:', elevenLabsData);
+        const backendData = await backendResponse.json();
+        console.log('Backend response:', backendData);
         
-        if (elevenLabsResponse.ok && elevenLabsData.conversation_id) {
-            conversationId = elevenLabsData.conversation_id;
-            console.log('Conversation created:', conversationId);
+        if (backendResponse.ok) {
+            isInterviewActive = true;
+            conversationId = backendData.conversation_id;
             
-            // Update backend database
-            const backendResponse = await fetch('/create_conversation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    interview_id: currentInterviewData.interview_id,
-                    cv_text: currentInterviewData.cv_text || '',
-                    job_role: currentInterviewData.job_role || '',
-                    conversation_id: conversationId
-                })
-            });
-            
-            const backendData = await backendResponse.json();
-            console.log('Backend response:', backendData);
-            
-            if (backendResponse.ok) {
-                isInterviewActive = true;
-                
-                // Create COMPLETELY HIDDEN widget that actually works
-                const widgetElement = document.getElementById('elevenlabs-widget');
-                if (!widgetElement) {
-                    console.error('Widget element not found');
-                    return;
-                }
-                
-                // Clear any existing content
-                widgetElement.innerHTML = '';
-                
-                // Create widget with maximum hiding
-                const widgetHTML = `<elevenlabs-convai 
-                    agent-id="${ELEVENLABS_AGENT_ID}" 
-                    conversation-id="${conversationId}"
-                    style="display: none !important; visibility: hidden !important; position: absolute !important; top: -9999px !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0 !important; pointer-events: none !important; z-index: -999 !important;">
-                </elevenlabs-convai>`;
-                
-                widgetElement.innerHTML = widgetHTML;
-                
-                // Apply additional hiding to the container
-                widgetElement.style.cssText = `
-                    position: absolute !important;
-                    top: -9999px !important;
-                    left: -9999px !important;
-                    width: 1px !important;
-                    height: 1px !important;
-                    opacity: 0 !important;
-                    pointer-events: none !important;
-                    visibility: hidden !important;
-                    z-index: -999 !important;
-                    overflow: hidden !important;
-                `;
-                
-                // Store reference for cleanup
-                elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
-                
-                // Update UI - Hide start button and show interview status
-                btn.style.display = 'none';
-                interviewStatus.style.display = 'block';
-                statusText.textContent = 'Interview Active - Speaking with AI Interviewer';
-                
-                showNotification('Voice interview started! The AI interviewer should begin speaking.', 'success');
-            } else {
-                throw new Error(backendData.error || 'Backend update failed');
+            // Create COMPLETELY HIDDEN but functional widget
+            const widgetElement = document.getElementById('elevenlabs-widget');
+            if (!widgetElement) {
+                console.error('Widget element not found');
+                return;
             }
+            
+            // Clear any existing content
+            widgetElement.innerHTML = '';
+            
+            // Create hidden widget
+            const widgetHTML = `<elevenlabs-convai 
+                agent-id="${ELEVENLABS_AGENT_ID}"
+                style="position: fixed !important; top: -9999px !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0 !important; pointer-events: none !important; visibility: hidden !important; z-index: -999 !important; transform: scale(0) !important;">
+            </elevenlabs-convai>`;
+            
+            widgetElement.innerHTML = widgetHTML;
+            
+            // Apply CSS to hide the widget container completely
+            widgetElement.style.cssText = `
+                position: fixed !important;
+                top: -9999px !important;
+                left: -9999px !important;
+                width: 1px !important;
+                height: 1px !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+                z-index: -999 !important;
+                overflow: hidden !important;
+                transform: scale(0) !important;
+                clip: rect(0,0,0,0) !important;
+            `;
+            
+            // Store reference for cleanup
+            elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
+            
+            // Update UI - Hide start button and show interview status
+            btn.style.display = 'none';
+            interviewStatus.style.display = 'block';
+            statusText.textContent = 'Interview Active - AI Interviewer Ready';
+            
+            showNotification('Voice interview started! The AI should begin speaking through your speakers.', 'success');
+            
+            // Try to programmatically provide CV context to the widget
+            setTimeout(() => {
+                try {
+                    if (elevenLabsWidget && typeof elevenLabsWidget.sendMessage === 'function') {
+                        const contextMessage = `Please interview this candidate based on their CV: ${currentInterviewData.cv_text}. Job role: ${currentInterviewData.job_role}`;
+                        elevenLabsWidget.sendMessage(contextMessage);
+                    }
+                } catch (e) {
+                    console.log('Could not send context message:', e);
+                }
+            }, 2000);
+            
         } else {
-            throw new Error('Failed to create ElevenLabs conversation: ' + JSON.stringify(elevenLabsData));
+            throw new Error(backendData.error || 'Backend update failed');
         }
         
     } catch (error) {
@@ -807,7 +785,7 @@ Be conversational, professional, and focus on their actual experience.`
 }
 
 async function endInterview() {
-    if (!conversationId || !isInterviewActive) {
+    if (!isInterviewActive) {
         showNotification('No active interview to end.', 'warning');
         return;
     }
@@ -821,37 +799,21 @@ async function endInterview() {
         endBtn.innerHTML = '<span class="spinner"></span> Ending Interview...';
         endBtn.disabled = true;
         
-        console.log('Ending conversation:', conversationId);
+        console.log('Ending widget-based interview...');
         
-        // Get transcript before ending
-        let transcript = [];
-        try {
-            const transcriptResponse = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
-                method: 'GET',
-                headers: {
-                    'xi-api-key': ELEVENLABS_API_KEY
+        // Try to stop the widget
+        if (elevenLabsWidget) {
+            try {
+                if (typeof elevenLabsWidget.stop === 'function') {
+                    elevenLabsWidget.stop();
                 }
-            });
-            
-            if (transcriptResponse.ok) {
-                const transcriptData = await transcriptResponse.json();
-                transcript = transcriptData.transcript || [];
-                console.log('Retrieved transcript:', transcript);
+                if (typeof elevenLabsWidget.disconnect === 'function') {
+                    elevenLabsWidget.disconnect();
+                }
+            } catch (e) {
+                console.log('Widget stop methods not available:', e);
             }
-        } catch (e) {
-            console.log('Could not retrieve transcript:', e);
         }
-        
-        // Direct API call to ElevenLabs to END conversation
-        const elevenLabsEndResponse = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
-            method: 'DELETE',
-            headers: {
-                'xi-api-key': ELEVENLABS_API_KEY,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        console.log('ElevenLabs END response:', elevenLabsEndResponse.status);
         
         // Update backend to completed status
         const backendResponse = await fetch('/end_interview', {
@@ -860,9 +822,9 @@ async function endInterview() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                conversation_id: conversationId,
+                conversation_id: conversationId || 'widget_conversation',
                 interview_id: currentInterviewData.interview_id,
-                transcript: transcript,
+                transcript: [], // Widget doesn't provide transcript via API
                 status: 'completed'
             })
         });
@@ -873,7 +835,7 @@ async function endInterview() {
         if (backendResponse.ok) {
             isInterviewActive = false;
             
-            // Clean up widget
+            // Clean up widget completely
             const widgetElement = document.getElementById('elevenlabs-widget');
             widgetElement.innerHTML = '';
             elevenLabsWidget = null;
