@@ -255,46 +255,80 @@
         margin-bottom: 2rem;
     }
 
-    /* ElevenLabs Widget Container - KEEP HIDDEN */
-    .elevenlabs-widget-container {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-        width: 1px;
-        height: 1px;
-        opacity: 0;
-        pointer-events: none;
+    /* Voice Chat Widget Container */
+    .voice-chat-container {
+        margin: 2rem 0;
+        min-height: 400px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        display: none;
+        position: relative;
         overflow: hidden;
     }
 
-    .interview-status {
-        background: #f0fdf4;
-        border: 2px solid #10b981;
-        border-radius: 12px;
-        padding: 2rem;
-        margin: 2rem 0;
-        text-align: center;
-        display: none;
-    }
-
-    .interview-status.active {
+    .voice-chat-container.active {
         display: block;
+        border-color: #10b981;
+        background: #f0fdf4;
     }
 
-    .interview-status i {
-        font-size: 2.5rem;
+    .voice-chat-header {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .voice-chat-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+
+    .voice-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .voice-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #34d399;
+        animation: pulse 2s infinite;
+    }
+
+    .widget-content {
+        padding: 1.5rem;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .widget-placeholder {
+        text-align: center;
+        color: #64748b;
+    }
+
+    .widget-placeholder i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
         color: #10b981;
-        margin-bottom: 1rem;
     }
 
-    .interview-status h4 {
-        color: #166534;
-        margin-bottom: 1rem;
-    }
-
-    .interview-status p {
-        color: #166534;
-        margin-bottom: 1.5rem;
+    .elevenlabs-widget {
+        width: 100%;
+        min-height: 300px;
+        border: none;
+        border-radius: 0 0 12px 12px;
     }
 
     .interview-controls {
@@ -373,6 +407,16 @@
     .success-message p {
         color: #166534;
         margin-bottom: 0;
+    }
+
+    .demo-notice {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        color: #856404;
+        font-size: 0.9rem;
     }
 </style>
 {% endblock %}
@@ -463,22 +507,33 @@
                     The interview will be conducted through voice. Make sure your microphone and speakers are working properly.
                 </div>
                 
-                <!-- Interview Active Status -->
-                <div class="interview-status" id="interviewStatus">
-                    <i class="fas fa-microphone-alt"></i>
-                    <h4>Interview in Progress</h4>
-                    <p>The AI interviewer is ready to talk with you. Speak naturally and the conversation will flow.</p>
-                    
-                    <div class="interview-controls">
-                        <button class="end-interview-btn" onclick="endInterview()" id="endInterviewBtn">
-                            <i class="fas fa-stop"></i> End Interview
-                        </button>
+                <!-- Voice Chat Widget Container -->
+                <div class="voice-chat-container" id="voiceChatContainer">
+                    <div class="voice-chat-header">
+                        <div class="voice-chat-title">
+                            <i class="fas fa-robot"></i>
+                            AI Interviewer
+                        </div>
+                        <div class="voice-status">
+                            <span class="voice-indicator"></span>
+                            <span>Active</span>
+                        </div>
+                    </div>
+                    <div class="widget-content">
+                        <div class="widget-placeholder" id="widgetPlaceholder">
+                            <i class="fas fa-microphone-alt"></i>
+                            <h4>Initializing Voice Chat...</h4>
+                            <p>Setting up your AI interviewer</p>
+                        </div>
+                        <!-- ElevenLabs widget will be inserted here -->
+                        <div id="elevenlabs-widget"></div>
                     </div>
                 </div>
                 
-                <!-- ElevenLabs Widget Container - HIDDEN -->
-                <div class="elevenlabs-widget-container" id="widgetContainer">
-                    <div id="elevenlabs-widget"></div>
+                <div class="interview-controls" id="interviewControls" style="display: none;">
+                    <button class="end-interview-btn" onclick="endInterview()" id="endInterviewBtn">
+                        <i class="fas fa-stop"></i> End Interview
+                    </button>
                 </div>
 
                 <!-- Success Message -->
@@ -638,7 +693,8 @@ function showInterviewSession(data) {
 
 async function startVoiceInterview() {
     const btn = document.getElementById('startVoiceBtn');
-    const interviewStatus = document.getElementById('interviewStatus');
+    const chatContainer = document.getElementById('voiceChatContainer');
+    const controls = document.getElementById('interviewControls');
     const statusText = document.getElementById('statusText');
     
     if (!currentInterviewData) {
@@ -651,7 +707,10 @@ async function startVoiceInterview() {
         btn.innerHTML = '<span class="spinner"></span> Starting Voice Interview...';
         btn.disabled = true;
         
-        // Initialize ElevenLabs widget in hidden container
+        // Show voice chat container
+        chatContainer.classList.add('active');
+        
+        // Initialize ElevenLabs widget
         await initializeElevenLabsWidget();
         
         // Update interview status in database
@@ -673,12 +732,12 @@ async function startVoiceInterview() {
             conversationId = data.conversation_id;
             isInterviewActive = true;
             
-            // Update UI - Hide start button and show interview status
+            // Update UI
             btn.style.display = 'none';
-            interviewStatus.classList.add('active');
+            controls.style.display = 'flex';
             statusText.textContent = 'Interview Active - AI is ready to talk!';
             
-            showNotification('Voice interview started! The AI interviewer is ready to speak with you.', 'success');
+            showNotification('Voice interview started! You can now speak with the AI interviewer.', 'success');
             
         } else {
             throw new Error(data.error || 'Failed to start voice interview');
@@ -691,24 +750,55 @@ async function startVoiceInterview() {
         // Reset button
         btn.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Interview';
         btn.disabled = false;
+        btn.style.display = 'block';
+        chatContainer.classList.remove('active');
     }
 }
 
 async function initializeElevenLabsWidget() {
     const widgetElement = document.getElementById('elevenlabs-widget');
+    const placeholder = document.getElementById('widgetPlaceholder');
     const agentId = '{{ config.ELEVENLABS_AGENT_ID }}';
     
-    if (!agentId || agentId.includes('YOUR_AGENT_ID')) {
-        // Demo mode - no actual widget
-        console.log('Demo mode: ElevenLabs widget not configured');
+    console.log('Initializing ElevenLabs widget with agent ID:', agentId);
+    
+    if (!agentId || agentId.includes('YOUR_AGENT_ID') || agentId === '') {
+        // Demo mode
+        placeholder.innerHTML = `
+            <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+            <h4 style="color: #f59e0b;">Demo Mode Active</h4>
+            <p>ElevenLabs agent not configured. Set ELEVENLABS_AGENT_ID in your environment variables.</p>
+            <div class="demo-notice">
+                <strong>For developers:</strong> Add your ElevenLabs Agent ID to enable real voice conversations.
+            </div>
+        `;
+        console.log('Demo mode: ElevenLabs agent ID not configured');
         return;
     }
     
-    // Create the ElevenLabs widget in hidden container
-    widgetElement.innerHTML = `<elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>`;
-    
-    // Store reference to widget for later cleanup
-    elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
+    try {
+        // Create the ElevenLabs widget
+        widgetElement.innerHTML = `<elevenlabs-convai agent-id="${agentId}"></elevenlabs-convai>`;
+        
+        // Hide placeholder when widget loads
+        setTimeout(() => {
+            placeholder.style.display = 'none';
+            widgetElement.style.display = 'block';
+        }, 2000);
+        
+        // Store reference for cleanup
+        elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
+        
+        console.log('ElevenLabs widget initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing ElevenLabs widget:', error);
+        placeholder.innerHTML = `
+            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+            <h4 style="color: #ef4444;">Widget Error</h4>
+            <p>Failed to load the voice chat widget. Please refresh the page and try again.</p>
+        `;
+    }
 }
 
 async function endInterview() {
@@ -749,8 +839,9 @@ async function endInterview() {
         if (response.ok) {
             isInterviewActive = false;
             
-            // Hide interview status and show success message
-            document.getElementById('interviewStatus').classList.remove('active');
+            // Hide interview UI and show success message
+            document.getElementById('voiceChatContainer').style.display = 'none';
+            document.getElementById('interviewControls').style.display = 'none';
             document.getElementById('successMessage').classList.add('show');
             
             // Clean up widget
