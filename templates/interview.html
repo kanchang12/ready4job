@@ -747,9 +747,38 @@ Be conversational, professional, and focus on their actual experience.`
             if (backendResponse.ok) {
                 isInterviewActive = true;
                 
-                // Create HIDDEN widget that actually works
+                // Create COMPLETELY HIDDEN widget that actually works
                 const widgetElement = document.getElementById('elevenlabs-widget');
-                widgetElement.innerHTML = `<elevenlabs-convai agent-id="${ELEVENLABS_AGENT_ID}" conversation-id="${conversationId}"></elevenlabs-convai>`;
+                if (!widgetElement) {
+                    console.error('Widget element not found');
+                    return;
+                }
+                
+                // Clear any existing content
+                widgetElement.innerHTML = '';
+                
+                // Create widget with maximum hiding
+                const widgetHTML = `<elevenlabs-convai 
+                    agent-id="${ELEVENLABS_AGENT_ID}" 
+                    conversation-id="${conversationId}"
+                    style="display: none !important; visibility: hidden !important; position: absolute !important; top: -9999px !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0 !important; pointer-events: none !important; z-index: -999 !important;">
+                </elevenlabs-convai>`;
+                
+                widgetElement.innerHTML = widgetHTML;
+                
+                // Apply additional hiding to the container
+                widgetElement.style.cssText = `
+                    position: absolute !important;
+                    top: -9999px !important;
+                    left: -9999px !important;
+                    width: 1px !important;
+                    height: 1px !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    visibility: hidden !important;
+                    z-index: -999 !important;
+                    overflow: hidden !important;
+                `;
                 
                 // Store reference for cleanup
                 elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
