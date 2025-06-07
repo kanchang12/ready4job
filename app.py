@@ -849,21 +849,6 @@ def history():
         print(f"Error getting interview history: {e}")
         return render_template('history.html', interviews=[])
 
-@app.route('/review/<interview_id>')
-def review(interview_id):
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-    
-    user_id = session['user_id']
-    try:
-        if supabase:
-            interview = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
-            if interview.data and len(interview.data) > 0:
-                return render_template('review.html', interview=interview.data[0])
-        return redirect(url_for('history'))
-    except Exception as e:
-        print(f"Error getting interview review: {e}")
-        return redirect(url_for('history'))
 
 @app.route('/delete_interview/<interview_id>', methods=['DELETE'])
 def delete_interview(interview_id):
