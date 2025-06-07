@@ -332,6 +332,48 @@ def elevenlabs_webhook():
         print(f"Webhook error: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Add this to your app.py
+
+# Store webhook data
+webhook_data = []
+
+@app.route('/webhook/elevenlabs', methods=['POST'])
+def elevenlabs_webhook():
+    try:
+        data = request.get_json()
+        
+        # Store with timestamp
+        webhook_data.append({
+            'timestamp': datetime.now().isoformat(),
+            'data': data
+        })
+        
+        # Keep only last 50
+        if len(webhook_data) > 50:
+            webhook_data.pop(0)
+        
+        return jsonify({'status': 'received'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Update your review route to include webhook data
+@app.route('/review/<interview_id>')
+def review(interview_id):
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+    
+    user_id = session['user_id']
+    try:
+        if supabase:
+            interview = supabase.table('interviews').select('*').eq('id', interview_id).eq('user_id', user_id).execute()
+            if interview.data and len(interview.data) > 0:
+                return render_template('review.html', 
+                                     interview=interview.data[0],
+                                     webhook_data=webhook_data)  # Pass webhook data
+        return redirect(url_for('history'))
+    except Exception as e:
+        return redirect(url_for('history'))
+
 @app.route('/register', methods=['POST'])
 def register():
     try:
