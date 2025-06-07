@@ -1,0 +1,491 @@
+<!-- templates/history.html -->
+{% extends "base.html" %}
+
+{% block title %}Interview History - DataCockpit{% endblock %}
+
+{% block styles %}
+<style>
+    .history-main {
+        padding-top: 100px;
+        min-height: 100vh;
+        background: #f8fafc;
+    }
+
+    .history-header {
+        background: white;
+        border-radius: 15px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+
+    .history-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+
+    .history-header p {
+        font-size: 1.1rem;
+        color: #64748b;
+    }
+
+    .interviews-section {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .section-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .filter-tab {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .filter-tab.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .interviews-grid {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .interview-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .interview-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .interview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .interview-info h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .interview-meta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    .interview-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .status-badge.started {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-badge.in_progress {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-badge.completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.cancelled {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .interview-details {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .interview-details p {
+        color: #64748b;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+    }
+
+    .interview-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: #f1f5f9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: #64748b;
+    }
+
+    .empty-content h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-content p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-item {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+        .history-header {
+            padding: 2rem 1rem;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .filter-tabs {
+            justify-content: center;
+        }
+        
+        .interview-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .interview-meta {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="history-main">
+    <div class="container">
+        <!-- History Header -->
+        <section class="history-header">
+            <h1>Interview History</h1>
+            <p>Track your progress and review past interview sessions</p>
+        </section>
+
+        <!-- Stats Summary -->
+        <section class="stats-summary">
+            <div class="stat-item">
+                <div class="stat-number">{{ interviews|length }}</div>
+                <div class="stat-label">Total Interviews</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ interviews|selectattr('status', 'equalto', 'completed')|list|length }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ interviews|selectattr('status', 'equalto', 'in_progress')|list|length }}</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ interviews|selectattr('status', 'equalto', 'started')|list|length }}</div>
+                <div class="stat-label">Started</div>
+            </div>
+        </section>
+
+        <!-- Interviews Section -->
+        <section class="interviews-section">
+            <div class="section-header">
+                <h2>Your Interviews</h2>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" onclick="filterInterviews('all')">All</button>
+                    <button class="filter-tab" onclick="filterInterviews('completed')">Completed</button>
+                    <button class="filter-tab" onclick="filterInterviews('in_progress')">In Progress</button>
+                    <button class="filter-tab" onclick="filterInterviews('started')">Started</button>
+                </div>
+            </div>
+
+            <div class="interviews-grid" id="interviewsGrid">
+                {% if interviews %}
+                    {% for interview in interviews %}
+                    <div class="interview-card" data-status="{{ interview.status }}" onclick="viewInterview('{{ interview.id }}')">
+                        <div class="interview-header">
+                            <div class="interview-info">
+                                <h3>{{ interview.title }}</h3>
+                                <div class="interview-meta">
+                                    <span>
+                                        <i class="fas fa-calendar"></i>
+                                        {{ interview.created_at[:10] }}
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-clock"></i>
+                                        {{ interview.created_at[11:16] }}
+                                    </span>
+                                    {% if interview.job_role %}
+                                    <span>
+                                        <i class="fas fa-briefcase"></i>
+                                        {{ interview.job_role }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="status-badge {{ interview.status }}">
+                                {{ interview.status.replace('_', ' ') }}
+                            </div>
+                        </div>
+                        
+                        <div class="interview-details">
+                            {% if interview.status == 'completed' %}
+                                <p><strong>Status:</strong> Interview completed successfully</p>
+                                {% if interview.conversation_id %}
+                                <p><strong>Conversation ID:</strong> {{ interview.conversation_id }}</p>
+                                {% endif %}
+                                {% if interview.completed_at %}
+                                <p><strong>Completed:</strong> {{ interview.completed_at[:19].replace('T', ' ') }}</p>
+                                {% endif %}
+                            {% elif interview.status == 'in_progress' %}
+                                <p><strong>Status:</strong> Voice interview is currently active</p>
+                                {% if interview.conversation_id %}
+                                <p><strong>Conversation ID:</strong> {{ interview.conversation_id }}</p>
+                                {% endif %}
+                            {% elif interview.status == 'started' %}
+                                <p><strong>Status:</strong> CV processed, ready to start voice interview</p>
+                            {% endif %}
+                            
+                            {% if interview.cv_text %}
+                            <p><strong>CV:</strong> Analyzed ({{ interview.cv_text|length }} characters)</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="interview-actions" onclick="event.stopPropagation()">
+                            {% if interview.status == 'completed' %}
+                                <a href="{{ url_for('review', interview_id=interview.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye"></i> View Review
+                                </a>
+                            {% elif interview.status == 'started' %}
+                                <a href="{{ url_for('interview') }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-play"></i> Continue Interview
+                                </a>
+                            {% elif interview.status == 'in_progress' %}
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-spinner fa-spin"></i> In Progress
+                                </button>
+                            {% endif %}
+                            
+                            <button class="btn btn-outline btn-sm" onclick="deleteInterview('{{ interview.id }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="empty-content">
+                            <h3>No interviews yet</h3>
+                            <p>Start your first interview to begin tracking your progress and improving your skills.</p>
+                            <a href="{{ url_for('interview') }}" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Start Your First Interview
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterInterviews(status) {
+    // Update active tab
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Filter interview cards
+    const cards = document.querySelectorAll('.interview-card');
+    cards.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        if (status === 'all' || cardStatus === status) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function viewInterview(interviewId) {
+    window.location.href = `/review/${interviewId}`;
+}
+
+async function deleteInterview(interviewId) {
+    if (!confirm('Are you sure you want to delete this interview? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/delete_interview/${interviewId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showNotification('Interview deleted successfully', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            const data = await response.json();
+            showNotification(data.error || 'Failed to delete interview', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting interview:', error);
+        showNotification('Failed to delete interview', 'error');
+    }
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        word-wrap: break-word;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Show notification
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Hide and remove notification
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 4000);
+}
+</script>
+{% endblock %}

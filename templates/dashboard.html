@@ -1,0 +1,656 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Dashboard - DataCockpit{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-main {
+        padding-top: 100px;
+        min-height: 100vh;
+        background: #f8fafc;
+    }
+
+    .welcome-section {
+        background: linear-gradient(135deg, #1e40af, #3b82f6);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 15px;
+        margin-bottom: 3rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+    }
+
+    .welcome-content h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .welcome-content p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        background: linear-gradient(135deg, #3b82f6, #1e40af);
+    }
+
+    .stat-content h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-content p {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    /* BUY CREDITS SECTION - PROMINENT */
+    .buy-credits-section {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        border-radius: 20px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+    }
+
+    .buy-credits-header {
+        margin-bottom: 3rem;
+    }
+
+    .buy-credits-header h2 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .buy-credits-header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+    }
+
+    .current-credits-display {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 1rem 2rem;
+        border-radius: 50px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+
+    .packages-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .package-card {
+        background: white;
+        color: #1e293b;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+        border: 3px solid transparent;
+    }
+
+    .package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .package-card.popular {
+        border-color: #10b981;
+        transform: scale(1.05);
+    }
+
+    .package-card.popular::before {
+        content: "🔥 MOST POPULAR";
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #10b981;
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .package-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .package-credits {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #1e40af;
+        margin-bottom: 0.5rem;
+    }
+
+    .package-credits span {
+        font-size: 1.2rem;
+        color: #64748b;
+        font-weight: 400;
+    }
+
+    .package-price {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #059669;
+        margin-bottom: 1.5rem;
+    }
+
+    .package-price .currency {
+        font-size: 1.5rem;
+    }
+
+    .package-features {
+        list-style: none;
+        padding: 0;
+        margin: 2rem 0;
+    }
+
+    .package-features li {
+        padding: 0.75rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        color: #4b5563;
+        font-weight: 500;
+    }
+
+    .package-features li i {
+        color: #10b981;
+        font-size: 1.1rem;
+    }
+
+    .package-button {
+        width: 100%;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .package-button.primary {
+        background: linear-gradient(135deg, #3b82f6, #1e40af);
+        color: white;
+    }
+
+    .package-button.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .package-button.secondary {
+        background: #f1f5f9;
+        color: #1e40af;
+        border: 2px solid #3b82f6;
+    }
+
+    .package-button.secondary:hover {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .recent-activity {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 3rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0;
+    }
+
+    .view-all {
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .view-all:hover {
+        color: #1e40af;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: #f1f5f9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: #64748b;
+    }
+
+    .empty-content h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-content p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .welcome-section {
+            text-align: center;
+        }
+        
+        .buy-credits-section {
+            padding: 2rem 1rem;
+        }
+        
+        .packages-container {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .package-card.popular {
+            transform: none;
+        }
+    }
+
+    /* Notification Styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        word-wrap: break-word;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .notification.success {
+        background: #10b981;
+    }
+
+    .notification.error {
+        background: #ef4444;
+    }
+
+    .notification.warning {
+        background: #f59e0b;
+    }
+
+    .notification.info {
+        background: #3b82f6;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="dashboard-main">
+    <div class="container">
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <div class="welcome-content">
+                <h1>Welcome back, {{ user_name }}!</h1>
+                <p>Ready to practice your interview skills? You have <strong id="userCredits">{{ stats.credits }}</strong> credits available.</p>
+            </div>
+            <div class="quick-actions">
+                <a href="{{ url_for('interview') }}" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Start Interview
+                </a>
+            </div>
+        </section>
+
+        <!-- Stats Grid -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_interviews }}</h3>
+                    <p>Total Interviews</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.avg_score }}</h3>
+                    <p>Average Score</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="creditsDisplay">{{ stats.credits }}</h3>
+                    <p>Credits Left</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.last_interview }}</h3>
+                    <p>Last Interview</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- BUY CREDITS SECTION - PROMINENT -->
+        <section class="buy-credits-section">
+            <div class="buy-credits-header">
+                <h2>💳 Purchase Interview Credits</h2>
+                <p>Get more credits to practice and improve your interview skills</p>
+                <div class="current-credits-display">
+                    <i class="fas fa-coins"></i>
+                    <span id="currentCredits">{{ stats.credits }}</span> Credits Available
+                </div>
+            </div>
+            
+            <div class="packages-container">
+                <div class="package-card">
+                    <div class="package-icon">🥉</div>
+                    <div class="package-credits">10 <span>Credits</span></div>
+                    <div class="package-price"><span class="currency">₹</span>99</div>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check"></i> 10 AI Interview Sessions</li>
+                        <li><i class="fas fa-check"></i> CV Analysis & Processing</li>
+                        <li><i class="fas fa-check"></i> Performance Reports</li>
+                        <li><i class="fas fa-check"></i> Interview History</li>
+                    </ul>
+                    <button class="package-button secondary" onclick="purchaseCredits(10)">
+                        Get Started Package
+                    </button>
+                </div>
+                
+                <div class="package-card popular">
+                    <div class="package-icon">🥈</div>
+                    <div class="package-credits">25 <span>Credits</span></div>
+                    <div class="package-price"><span class="currency">₹</span>199</div>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check"></i> 25 AI Interview Sessions</li>
+                        <li><i class="fas fa-check"></i> CV Analysis & Processing</li>
+                        <li><i class="fas fa-check"></i> Performance Reports</li>
+                        <li><i class="fas fa-check"></i> Interview History</li>
+                        <li><i class="fas fa-star"></i> <strong>Best Value - Save 20%!</strong></li>
+                    </ul>
+                    <button class="package-button primary" onclick="purchaseCredits(25)">
+                        Most Popular Choice
+                    </button>
+                </div>
+                
+                <div class="package-card">
+                    <div class="package-icon">🥇</div>
+                    <div class="package-credits">50 <span>Credits</span></div>
+                    <div class="package-price"><span class="currency">₹</span>349</div>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check"></i> 50 AI Interview Sessions</li>
+                        <li><i class="fas fa-check"></i> CV Analysis & Processing</li>
+                        <li><i class="fas fa-check"></i> Performance Reports</li>
+                        <li><i class="fas fa-check"></i> Interview History</li>
+                        <li><i class="fas fa-crown"></i> <strong>Premium Support</strong></li>
+                    </ul>
+                    <button class="package-button secondary" onclick="purchaseCredits(50)">
+                        Professional Package
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="recent-activity">
+            <div class="section-header">
+                <h2>Recent Activity</h2>
+                <a href="{{ url_for('history') }}" class="view-all">View All</a>
+            </div>
+            <div class="activity-list">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="empty-content">
+                        <h3>No interviews yet</h3>
+                        <p>Start your first interview to see your activity here.</p>
+                        <a href="{{ url_for('interview') }}" class="btn btn-primary">Start Interview</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<!-- Include Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+// Purchase Credits Function
+async function purchaseCredits(credits) {
+    try {
+        showNotification('Creating order...', 'info');
+        
+        const response = await fetch('/create_order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ credits: credits })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create order');
+        }
+        
+        // Razorpay options
+        const options = {
+            key: data.key_id,
+            amount: data.amount,
+            currency: data.currency,
+            name: 'DataCockpit',
+            description: `${credits} Interview Credits`,
+            order_id: data.order_id,
+            handler: function(response) {
+                verifyPayment(response, credits);
+            },
+            prefill: {
+                email: '{{ session.user_email if session.user_email else "" }}'
+            },
+            theme: {
+                color: '#3b82f6'
+            },
+            modal: {
+                ondismiss: function() {
+                    showNotification('Payment cancelled', 'warning');
+                }
+            }
+        };
+        
+        const rzp = new Razorpay(options);
+        rzp.open();
+        
+    } catch (error) {
+        console.error('Purchase error:', error);
+        showNotification(error.message || 'Failed to initiate purchase', 'error');
+    }
+}
+
+// Verify Payment
+async function verifyPayment(paymentResponse, credits) {
+    try {
+        showNotification('Verifying payment...', 'info');
+        
+        const response = await fetch('/verify_payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification(`🎉 Payment successful! ${credits} credits added to your account.`, 'success');
+            
+            // Update credits display
+            document.getElementById('userCredits').textContent = data.new_balance;
+            document.getElementById('creditsDisplay').textContent = data.new_balance;
+            document.getElementById('currentCredits').textContent = data.new_balance;
+            
+            // Reload page after short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            throw new Error(data.error || 'Payment verification failed');
+        }
+        
+    } catch (error) {
+        console.error('Verification error:', error);
+        showNotification(error.message || 'Payment verification failed', 'error');
+    }
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Show notification
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    // Hide and remove notification
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 4000);
+}
+
+// Auto-refresh credits every 30 seconds
+setInterval(async () => {
+    try {
+        const response = await fetch('/get_credits');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('userCredits').textContent = data.credits;
+            document.getElementById('creditsDisplay').textContent = data.credits;
+            document.getElementById('currentCredits').textContent = data.credits;
+        }
+    } catch (error) {
+        console.error('Error refreshing credits:', error);
+    }
+}, 30000);
+</script>
+{% endblock %}

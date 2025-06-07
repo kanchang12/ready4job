@@ -1,0 +1,8 @@
+Flask
+python-dotenv
+PyPDF2
+requests
+supabase
+razorpay
+Werkzeug
+gunicorn

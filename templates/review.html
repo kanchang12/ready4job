@@ -1,0 +1,292 @@
+<!-- templates/review.html -->
+{% extends "base.html" %}
+
+{% block title %}Interview Review - DataCockpit{% endblock %}
+
+{% block styles %}
+<style>
+    .review-main {
+        padding-top: 100px;
+        min-height: 100vh;
+        background: #f8fafc;
+    }
+
+    .review-header {
+        background: white;
+        border-radius: 15px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+    }
+
+    .interview-info h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+
+    .interview-meta {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .interview-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .status.completed {
+        color: #10b981;
+    }
+
+    .overall-score {
+        text-align: center;
+    }
+
+    .score-circle {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 1rem;
+    }
+
+    .score-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+
+    .score-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+
+    .score-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .score-unit {
+        font-size: 1.5rem;
+        color: #64748b;
+    }
+
+    .score-label {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .interview-details {
+        background: white;
+        border-radius: 15px;
+        padding: 3rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .interview-details h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 2rem;
+    }
+
+    .detail-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+    }
+
+    .detail-section h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+
+    .detail-section p {
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .action-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .action-card {
+        text-align: center;
+        padding: 2rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .action-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+    }
+
+    .action-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #3b82f6, #1e40af);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .action-card h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+
+    .action-card p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="review-main">
+    <div class="container">
+        <!-- Review Header -->
+        <section class="review-header">
+            <div class="header-content">
+                <div class="interview-info">
+                    <h1>{{ interview.title }}</h1>
+                    <div class="interview-meta">
+                        <span>
+                            <i class="fas fa-calendar"></i>
+                            {{ interview.created_at[:10] }}
+                        </span>
+                        <span>
+                            <i class="fas fa-clock"></i>
+                            Duration: N/A
+                        </span>
+                        <span class="status completed">
+                            <i class="fas fa-check-circle"></i>
+                            {{ interview.status|title }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="overall-score">
+                <div class="score-circle">
+                    <svg class="score-svg" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="8"/>
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#10b981" stroke-width="8" 
+                                stroke-dasharray="283" stroke-dashoffset="56.6" stroke-linecap="round"/>
+                    </svg>
+                    <div class="score-text">
+                        <span class="score-value">{{ interview.score or 'N/A' }}</span>
+                        {% if interview.score %}
+                        <span class="score-unit">%</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="score-label">Overall Score</div>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('interview') }}" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Take Another Interview
+                </a>
+            </div>
+        </section>
+
+        <!-- Interview Details -->
+        <section class="interview-details">
+            <h2>Interview Summary</h2>
+            
+            <div class="detail-section">
+                <h3>📋 Interview Information</h3>
+                <p><strong>Title:</strong> {{ interview.title }}</p>
+                <p><strong>Status:</strong> {{ interview.status|title }}</p>
+                <p><strong>Started:</strong> {{ interview.created_at[:19].replace('T', ' ') }}</p>
+                {% if interview.completed_at %}
+                <p><strong>Completed:</strong> {{ interview.completed_at[:19].replace('T', ' ') }}</p>
+                {% endif %}
+            </div>
+
+            {% if interview.conversation_id %}
+            <div class="detail-section">
+                <h3>🤖 AI Interview Session</h3>
+                <p>This interview was conducted using our AI-powered voice interviewer. The AI analyzed your CV and conducted a personalized interview session based on your background and experience.</p>
+                <p><strong>Conversation ID:</strong> {{ interview.conversation_id }}</p>
+            </div>
+            {% endif %}
+
+            {% if interview.cv_text %}
+            <div class="detail-section">
+                <h3>📄 CV Analysis</h3>
+                <p>Your CV was analyzed and used to generate personalized interview questions. The AI interviewer tailored the conversation based on your experience, skills, and background mentioned in your CV.</p>
+                <details>
+                    <summary style="cursor: pointer; font-weight: 600; margin-bottom: 1rem;">View CV Content</summary>
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem; max-height: 300px; overflow-y: auto;">{{ interview.cv_text[:1000] }}{% if interview.cv_text|length > 1000 %}...{% endif %}</div>
+                </details>
+            </div>
+            {% endif %}
+
+            {% if interview.feedback %}
+            <div class="detail-section">
+                <h3>💬 AI Feedback</h3>
+                <p>{{ interview.feedback.summary or 'Detailed feedback will be available once the AI analysis is complete.' }}</p>
+            </div>
+            {% endif %}
+
+            <div class="action-items">
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-redo"></i>
+                    </div>
+                    <h3>Practice Again</h3>
+                    <p>Take another interview to continue improving your skills</p>
+                    <a href="{{ url_for('interview') }}" class="btn btn-primary">Start New Interview</a>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h3>View History</h3>
+                    <p>Review all your past interviews and track your progress</p>
+                    <a href="{{ url_for('history') }}" class="btn btn-outline">View All Interviews</a>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <h3>Dashboard</h3>
+                    <p>Return to your dashboard to see overall statistics</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Go to Dashboard</a>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
