@@ -656,6 +656,86 @@ def create_conversation():
     try:
         data = request.get_json()
         interview_id = data.get('interview_id')
+        conversation_id = data.get('conversation_id', f"conv_{uuid.uuid4().hex[:8]}")
+        
+        print(f"Creating conversation for interview: {interview_id}")
+        
+        if not interview_id:
+            return jsonify({'error': 'Interview ID required'}), 400
+        
+        # Simple update - just mark as in progress
+        user_id = session['user_id']
+        if supabase:
+            try:
+                result = supabase.table('interviews').update({
+                    'status': 'in_progress',
+                    'conversation_id': conversation_id,
+                    'updated_at': datetime.now().isoformat()
+                }).eq('id', interview_id).eq('user_id', user_id).execute()
+                
+                print(f"Updated interview status: {result}")
+            except Exception as e:
+                print(f"Database update error: {e}")
+                # Continue anyway
+        
+        return jsonify({
+            'message': 'Voice interview started successfully',
+            'conversation_id': conversation_id,
+            'interview_id': interview_id,
+            'type': 'elevenlabs'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error creating conversation: {e}")
+        return jsonify({'error': 'Failed to start voice interview'}), 500
+
+
+@app.route('/end_interview', methods=['POST'])
+def end_interview():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        interview_id = data.get('interview_id')
+        
+        print(f"Ending interview: {interview_id}")
+        
+        if not interview_id:
+            return jsonify({'error': 'Interview ID required'}), 400
+        
+        # Simple update - just mark as completed
+        user_id = session['user_id']
+        if supabase:
+            try:
+                result = supabase.table('interviews').update({
+                    'status': 'completed',
+                    'completed_at': datetime.now().isoformat(),
+                    'updated_at': datetime.now().isoformat()
+                }).eq('id', interview_id).eq('user_id', user_id).execute()
+                
+                print(f"Interview completed: {result}")
+            except Exception as e:
+                print(f"Database update error: {e}")
+                # Continue anyway
+        
+        return jsonify({
+            'message': 'Interview ended successfully',
+            'status': 'completed'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error ending interview: {e}")
+        return jsonify({'error': 'Failed to end interview'}), 500# Add/Update these routes in your app.py to fix "Method Not Allowed" errors
+
+@app.route('/create_conversation', methods=['POST'])
+def create_conversation():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        data = request.get_json()
+        interview_id = data.get('interview_id')
         cv_text = data.get('cv_text', '')
         job_role = data.get('job_role', '')
         conversation_id = data.get('conversation_id')  # Get from frontend
@@ -688,6 +768,7 @@ def create_conversation():
     except Exception as e:
         print(f"Error creating conversation: {e}")
         return jsonify({'error': 'Failed to start voice interview'}), 500
+
 
 @app.route('/end_interview', methods=['POST'])
 def end_interview():
