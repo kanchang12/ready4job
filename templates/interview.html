@@ -669,6 +669,8 @@ function showInterviewSession(data) {
     document.getElementById('sessionTitle').textContent = 'Ready for Voice Interview';
 }
 
+// Replace the startVoiceInterview function in your interview.html
+
 async function startVoiceInterview() {
     const btn = document.getElementById('startVoiceBtn');
     const interviewStatus = document.getElementById('interviewStatus');
@@ -684,8 +686,7 @@ async function startVoiceInterview() {
         btn.innerHTML = '<span class="spinner"></span> Starting Voice Interview...';
         btn.disabled = true;
         
-        // Initialize ElevenLabs widget in hidden container
-        await initializeElevenLabsWidget();
+        console.log('Starting interview with data:', currentInterviewData);
         
         // Update interview status in database
         const response = await fetch('/create_conversation', {
@@ -701,17 +702,26 @@ async function startVoiceInterview() {
         });
         
         const data = await response.json();
+        console.log('Create conversation response:', data);
         
         if (response.ok) {
             conversationId = data.conversation_id;
             isInterviewActive = true;
             
+            // Check if we have a real ElevenLabs conversation or demo
+            if (data.type === 'elevenlabs') {
+                // Try to initialize the actual ElevenLabs widget
+                await initializeElevenLabsWidget();
+                showNotification('Voice interview started! The AI interviewer should begin speaking soon.', 'success');
+            } else {
+                // Demo mode
+                showNotification('Demo mode: ElevenLabs not configured. Interview simulation started.', 'warning');
+            }
+            
             // Update UI - Hide start button and show interview status
             btn.style.display = 'none';
             interviewStatus.classList.add('active');
-            statusText.textContent = 'Interview Active - Speaking with AI Interviewer';
-            
-            showNotification('Voice interview started! The AI interviewer is ready to speak with you.', 'success');
+            statusText.textContent = 'Interview Active - AI Interviewer Ready';
             
         } else {
             throw new Error(data.error || 'Failed to start voice interview');
@@ -724,6 +734,37 @@ async function startVoiceInterview() {
         // Reset button
         btn.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Interview';
         btn.disabled = false;
+    }
+}
+
+async function initializeElevenLabsWidget() {
+    const widgetElement = document.getElementById('elevenlabs-widget');
+    const agentId = '{{ config.ELEVENLABS_AGENT_ID }}';
+    
+    console.log('Initializing ElevenLabs widget with agent ID:', agentId);
+    
+    if (!agentId || agentId.includes('YOUR_AGENT_ID') || agentId === '') {
+        console.log('ElevenLabs agent ID not configured');
+        return false;
+    }
+    
+    try {
+        // Clear any existing content
+        widgetElement.innerHTML = '';
+        
+        // Create the ElevenLabs widget
+        const widgetHTML = `<elevenlabs-convai agent-id="${agentId}" conversation-id="${conversationId}"></elevenlabs-convai>`;
+        widgetElement.innerHTML = widgetHTML;
+        
+        // Store reference for cleanup
+        elevenLabsWidget = widgetElement.querySelector('elevenlabs-convai');
+        
+        console.log('ElevenLabs widget created successfully');
+        return true;
+        
+    } catch (error) {
+        console.error('Error initializing ElevenLabs widget:', error);
+        return false;
     }
 }
 
